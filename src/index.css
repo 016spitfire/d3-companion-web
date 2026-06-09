@@ -1,0 +1,30 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  background: #000;
+  overflow: hidden;
+  height: 100dvh;
+}
+
+#root {
+  height: 100dvh;
+  display: flex;
+  justify-content: center;
+  background: #000;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  background: none;
+  font-family: inherit;
+}
+
+input {
+  font-family: inherit;
+}
