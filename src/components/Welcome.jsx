@@ -1,117 +1,151 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { DateTime } from 'luxon';
+import {
+  FaHome, FaList, FaCalculator, FaChartBar, FaTrophy,
+  FaFire, FaShieldAlt, FaGift, FaChevronRight,
+} from 'react-icons/fa';
 import { selectReduxSlice } from '../store/store';
 
-const NavButton = ({ screen, title, setScreen }) => (
-  <button
-    onClick={() => setScreen(screen)}
+const navItems = [
+  { screen: 'paragonCalc',    label: 'Paragon Calculator', Icon: FaCalculator },
+  { screen: 'seasonJourney',  label: 'Season Journey',     Icon: FaList },
+  { screen: 'paragonTracker', label: 'Paragon Tracker',    Icon: FaChartBar },
+  { screen: 'conquests',      label: 'Conquests',          Icon: FaTrophy },
+  { screen: 'alterRites',     label: 'Altar of Rites',     Icon: FaFire },
+  { screen: 'gearTracker',    label: 'Gear Tracker',       Icon: FaShieldAlt },
+  { screen: 'haedrigsGift',   label: "Haedrig's Gift",     Icon: FaGift },
+];
+
+const StatCard = ({ label, value }) => (
+  <div
     style={{
-      width: '100%',
-      height: 55,
-      marginBottom: 15,
-      borderRadius: 5,
-      background: 'linear-gradient(135deg, rgba(0,83,164,1), rgba(31,28,109,1))',
+      flex: 1,
       display: 'flex',
-      justifyContent: 'center',
+      flexDirection: 'column',
       alignItems: 'center',
-      cursor: 'pointer',
-      border: 'none',
+      gap: 4,
+      padding: '14px 8px',
+      backgroundColor: 'var(--bg-surface)',
+      border: '1px solid var(--border-subtle)',
+      borderRadius: 'var(--r-md)',
     }}
   >
-    <span style={{ color: 'white', fontSize: 22, fontWeight: 'bold' }}>{title}</span>
+    <span style={{ fontSize: 11, color: 'var(--text-muted)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+      {label}
+    </span>
+    <span style={{ fontSize: 32, fontWeight: '700', color: 'var(--gold-bright)', lineHeight: 1 }}>
+      {value}
+    </span>
+  </div>
+);
+
+const NavCard = ({ screen: s, label, Icon, setScreen }) => (
+  <button
+    onClick={() => setScreen(s)}
+    style={{
+      width: '100%',
+      height: 52,
+      display: 'flex',
+      alignItems: 'center',
+      gap: 14,
+      paddingLeft: 16,
+      paddingRight: 14,
+      backgroundColor: 'var(--bg-surface)',
+      border: '1px solid var(--border-subtle)',
+      borderLeft: '3px solid var(--red-dim)',
+      borderRadius: 'var(--r-md)',
+      cursor: 'pointer',
+      textAlign: 'left',
+      transition: 'background-color 0.15s ease, border-left-color 0.15s ease',
+    }}
+    onMouseEnter={e => {
+      e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
+      e.currentTarget.style.borderLeftColor = 'var(--red-bright)';
+    }}
+    onMouseLeave={e => {
+      e.currentTarget.style.backgroundColor = 'var(--bg-surface)';
+      e.currentTarget.style.borderLeftColor = 'var(--red-dim)';
+    }}
+  >
+    <Icon size={16} style={{ color: 'var(--red-bright)', flexShrink: 0 }} />
+    <span style={{ flex: 1, fontSize: 14, fontWeight: '500', color: 'var(--text)' }}>{label}</span>
+    <FaChevronRight size={11} style={{ color: 'var(--text-muted)' }} />
   </button>
 );
 
-const buttons = [
-  { screen: 'paragonCalc', title: 'Paragon Calculator' },
-  { screen: 'seasonJourney', title: 'Season Journey' },
-  { screen: 'alterRites', title: 'Altar of Rites' },
-  { screen: 'gearTracker', title: 'Gear Tracker' },
-  { screen: 'paragonTracker', title: 'Paragon Tracker' },
-  { screen: 'conquests', title: 'Conquests' },
-  { screen: 'haedrigsGift', title: "Haedrig's Gift" },
-];
-
 const Welcome = ({ setScreen }) => {
-  const TodayLong = DateTime.now().toLocaleString({
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric',
-    weekday: 'long',
-  });
-  const Today = DateTime.now().toLocaleString({ month: 'short', day: 'numeric' });
+  const Today      = DateTime.now().toLocaleString({ month: 'short', day: 'numeric' });
+  const TodayLong  = DateTime.now().toLocaleString({ weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
 
-  const reduxState = useSelector(selectReduxSlice);
-  const reduxStateRef = useRef(reduxState);
+  const reduxState     = useSelector(selectReduxSlice);
+  const reduxStateRef  = useRef(reduxState);
   reduxStateRef.current = reduxState;
 
   const [todaysGoal, setTodaysGoal] = useState(undefined);
 
   useEffect(() => {
-    if (reduxStateRef.current.goalData.length > 0) {
-      const goal = reduxStateRef.current.goalData.find((d) => d.date === Today);
-      if (goal !== undefined) setTodaysGoal(goal);
-    }
-  }, [reduxState.goalData]);
+    const next = reduxStateRef.current.playQueue?.[0];
+    setTodaysGoal(next ?? undefined);
+  }, [reduxState.playQueue]);
 
   return (
     <div
       style={{
         width: '100%',
         height: '100%',
+        overflowY: 'auto',
         display: 'flex',
         flexDirection: 'column',
-        justifyContent: 'flex-start',
         alignItems: 'center',
-        background: 'linear-gradient(135deg, rgba(92,132,132,1), rgba(16,46,56,1))',
-        overflowY: 'auto',
+        backgroundColor: 'var(--bg-base)',
+        paddingBottom: 24,
       }}
     >
+      {/* Date header */}
       <div
         style={{
-          backgroundColor: 'rgba(0,0,0,0.5)',
           width: '100%',
-          height: 35,
+          padding: '10px 0',
           display: 'flex',
-          alignItems: 'center',
           justifyContent: 'center',
-          flexShrink: 0,
+          borderBottom: '1px solid var(--border-subtle)',
+          marginBottom: 24,
         }}
       >
-        <span style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>{TodayLong}</span>
+        <span style={{ fontSize: 12, color: 'var(--text-muted)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+          {TodayLong}
+        </span>
       </div>
 
-      {todaysGoal !== undefined && (
-        <div
-          style={{
-            width: '100%',
-            display: 'flex',
-            flexDirection: 'row',
-            justifyContent: 'space-evenly',
-            paddingTop: 10,
-            paddingBottom: 5,
-          }}
-        >
-          {[
-            { label: 'Non Season', value: reduxStateRef.current.currentParagons },
-            { label: 'Current Season', value: reduxStateRef.current.seasonParagon },
-            { label: 'Paragon Goal', value: todaysGoal.level },
-          ].map(({ label, value }) => (
-            <div key={label} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <span style={{ color: 'white', fontSize: 14, fontWeight: 'bold' }}>{label}:</span>
-              <span style={{ color: 'white', fontSize: 36, fontWeight: 'bold', lineHeight: 1 }}>
-                {value}
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
+      <div style={{ width: '100%', maxWidth: 640, padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 24 }}>
 
-      <div style={{ width: '90%', paddingTop: 15 }}>
-        {buttons.map((button) => (
-          <NavButton key={button.screen} setScreen={setScreen} {...button} />
-        ))}
+        {/* Paragon stats */}
+        {todaysGoal !== undefined && (
+          <section>
+            <span style={{ fontSize: 11, color: 'var(--text-muted)', letterSpacing: '0.1em', textTransform: 'uppercase', display: 'block', marginBottom: 10 }}>
+              Today&apos;s Paragon
+            </span>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <StatCard label="Non-Season"    value={reduxState.currentParagons} />
+              <StatCard label="Season"        value={reduxState.seasonParagon} />
+              <StatCard label="Next Goal" value={`P ${todaysGoal.level}`} />
+            </div>
+          </section>
+        )}
+
+        {/* Navigation */}
+        <section>
+          <span style={{ fontSize: 11, color: 'var(--text-muted)', letterSpacing: '0.1em', textTransform: 'uppercase', display: 'block', marginBottom: 10 }}>
+            Navigate
+          </span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {navItems.map((item) => (
+              <NavCard key={item.screen} setScreen={setScreen} {...item} />
+            ))}
+          </div>
+        </section>
+
       </div>
     </div>
   );

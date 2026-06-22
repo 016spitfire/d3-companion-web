@@ -6,17 +6,19 @@ export const reduxSlice = createSlice({
   initialState: {
     value: {
       currentParagons: 0,
-      seasonParagon: 0,
-      totalParagons: 0,
-      goalParagons: 0,
-      weeks: 0,
-      daysPerWeek: 0,
-      goalData: [],
-      startDate: null,
-      width: typeof window !== 'undefined' ? window.innerWidth : 480,
+      seasonParagon:   0,
+      totalParagons:   0,
+      goalParagons:    0,
+      weeks:           0,
+      daysPerWeek:     0,
+      playQueue:       [],
+      restQueue:       [],
+      history:         [],
+      startDate:       null,
+      width:  typeof window !== 'undefined' ? window.innerWidth  : 480,
       height: typeof window !== 'undefined' ? window.innerHeight : 800,
       journeyProgress: seasonJourneyData,
-      currentChapter: seasonJourneyData[0].chapter,
+      currentChapter:  seasonJourneyData[0].chapter,
     },
   },
   reducers: {
@@ -47,8 +49,9 @@ export const reduxSlice = createSlice({
     getDaysPerWeek: (state, action) => {
       state.value = { ...state.value, daysPerWeek: action.payload };
     },
-    getGoalData: (state, action) => {
-      state.value = { ...state.value, goalData: action.payload };
+    getTrackerData: (state, action) => {
+      const { playQueue, restQueue, history } = action.payload;
+      state.value = { ...state.value, playQueue, restQueue, history };
     },
     setSavedData: (state, action) => {
       const journeyData = seasonJourneyData.map((d) => {
@@ -72,7 +75,7 @@ export const {
   getGoalParagons,
   getWeeks,
   getDaysPerWeek,
-  getGoalData,
+  getTrackerData,
   getNewStartDate,
   getSeasonJourneyProgress,
   getCurrentChapter,
@@ -86,15 +89,17 @@ const saveData = (currentState) => {
   try {
     const jsonValue = JSON.stringify({
       currentParagons: currentState.currentParagons,
-      seasonParagon: currentState.seasonParagon,
-      totalParagons: currentState.totalParagons,
-      goalParagons: currentState.goalParagons,
-      weeks: currentState.weeks,
-      daysPerWeek: currentState.daysPerWeek,
-      goalData: currentState.goalData,
-      startDate: currentState.startDate,
+      seasonParagon:   currentState.seasonParagon,
+      totalParagons:   currentState.totalParagons,
+      goalParagons:    currentState.goalParagons,
+      weeks:           currentState.weeks,
+      daysPerWeek:     currentState.daysPerWeek,
+      playQueue:       currentState.playQueue,
+      restQueue:       currentState.restQueue,
+      history:         currentState.history,
+      startDate:       currentState.startDate,
       journeyProgress: currentState.journeyProgress,
-      currentChapter: currentState.currentChapter,
+      currentChapter:  currentState.currentChapter,
     });
     localStorage.setItem('DIABLO_3_COMPANION_SAVE_DATA', jsonValue);
   } catch (e) {
@@ -127,9 +132,9 @@ export const setDaysPerWeek = (val, currentState) => (dispatch) => {
   saveData({ ...currentState, daysPerWeek: fixedVal });
   dispatch(getDaysPerWeek(fixedVal));
 };
-export const setGoalData = (val, currentState) => (dispatch) => {
-  saveData({ ...currentState, goalData: val });
-  dispatch(getGoalData(val));
+export const setTrackerData = (val, currentState) => (dispatch) => {
+  saveData({ ...currentState, ...val });
+  dispatch(getTrackerData(val));
 };
 export const setNewStartDate = (val, currentState) => (dispatch) => {
   saveData({ ...currentState, startDate: val });

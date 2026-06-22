@@ -11,7 +11,9 @@ const Calendar = ({ pressFunc, chosenDate }) => {
   };
 
   const startDate = currentMonthRef.current.currentMonth.startOf('month');
-  const endDate = startDate.endOf('month');
+  const endDate   = startDate.endOf('month');
+  const todayStr  = DateTime.now().toLocaleString({ month: 'short', day: 'numeric' });
+
   const intervals = Interval.fromDateTimes(
     startDate.startOf('week'),
     endDate.endOf('week')
@@ -25,124 +27,111 @@ const Calendar = ({ pressFunc, chosenDate }) => {
         .toLocaleString({ month: 'long', day: 'numeric', year: 'numeric' })
         .split(' ');
       return {
-        monthShort: fixedDate[1]?.replaceAll(',', '') || '',
-        date: fixedDate[2]?.replaceAll(',', '') || fixedDate[1]?.replaceAll(',', '') || '',
-        weekday: fixedDate[0]?.replaceAll(',', '') || '',
-        month: testDate[0]?.replaceAll(',', '') || '',
-        year: testDate[2]?.replaceAll(',', '') || '',
+        monthShort:  fixedDate[1]?.replaceAll(',', '') || '',
+        date:        fixedDate[2]?.replaceAll(',', '') || fixedDate[1]?.replaceAll(',', '') || '',
+        weekday:     fixedDate[0]?.replaceAll(',', '') || '',
+        month:       testDate[0]?.replaceAll(',', '') || '',
+        year:        testDate[2]?.replaceAll(',', '') || '',
         monthNumber: date.start.toLocaleString({ month: 'numeric' }),
       };
     });
 
   const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-  const DayWidth = 36;
+  const DaySize  = 38;
 
   return (
-    <div
-      style={{
-        backgroundColor: 'white',
-        padding: 8,
-        borderRadius: 5,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        width: DayWidth * 7 + 16,
-      }}
-    >
-      <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+    <div style={{
+      backgroundColor: 'var(--bg-surface)',
+      border: '1px solid var(--border)',
+      borderRadius: 'var(--r-lg)',
+      padding: '14px 12px 10px',
+      display: 'flex', flexDirection: 'column', alignItems: 'center',
+      width: DaySize * 7 + 24,
+    }}>
+
+      {/* Month navigation */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 12 }}>
         <button
           onClick={() => setCurrentMonth(currentMonthRef.current.currentMonth.minus({ months: 1 }))}
           style={{
-            width: 22,
-            height: 22,
-            borderRadius: '50%',
-            backgroundColor: 'rgba(200,200,200,1)',
-            border: 'none',
+            width: 28, height: 28, borderRadius: '50%',
+            backgroundColor: 'var(--bg-raised)',
+            border: '1px solid var(--border-subtle)',
             cursor: 'pointer',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            marginRight: 10,
+            display: 'flex', justifyContent: 'center', alignItems: 'center',
           }}
         >
-          <FaChevronLeft size={10} />
+          <FaChevronLeft size={10} style={{ color: 'var(--text-dim)' }} />
         </button>
-        <span style={{ fontSize: 16, fontWeight: 'bold' }}>
+
+        <span style={{
+          fontSize: 14, fontWeight: '700', color: 'var(--text)',
+          minWidth: 130, textAlign: 'center',
+        }}>
           {currentMonthRef.current.readable}
         </span>
+
         <button
           onClick={() => setCurrentMonth(currentMonthRef.current.currentMonth.plus({ months: 1 }))}
           style={{
-            width: 22,
-            height: 22,
-            borderRadius: '50%',
-            backgroundColor: 'rgba(200,200,200,1)',
-            border: 'none',
+            width: 28, height: 28, borderRadius: '50%',
+            backgroundColor: 'var(--bg-raised)',
+            border: '1px solid var(--border-subtle)',
             cursor: 'pointer',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            marginLeft: 10,
+            display: 'flex', justifyContent: 'center', alignItems: 'center',
           }}
         >
-          <FaChevronRight size={10} />
+          <FaChevronRight size={10} style={{ color: 'var(--text-dim)' }} />
         </button>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'row', marginBottom: 6 }}>
+      {/* Weekday headers */}
+      <div style={{ display: 'flex', marginBottom: 4 }}>
         {weekDays.map((day) => (
-          <div
-            key={day}
-            style={{
-              width: DayWidth,
-              height: 25,
-              borderRadius: 25,
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              backgroundColor: 'rgba(234,234,234,1)',
-            }}
-          >
-            <span style={{ fontWeight: 'bold', fontSize: 11 }}>{day}</span>
+          <div key={day} style={{ width: DaySize, height: 22, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <span style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: '600', letterSpacing: '0.06em' }}>
+              {day}
+            </span>
           </div>
         ))}
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', width: DayWidth * 7 }}>
+      {/* Day grid */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', width: DaySize * 7 }}>
         {intervals.map((d) => {
-          const key = `${d.monthShort}${d.date}`;
-          const isCurrentMonth =
-            currentMonthRef.current.readable.split(' ')[0] === d.month;
-          const isChosen = chosenDate === `${d.monthShort} ${d.date}`;
+          const key          = `${d.monthShort}${d.date}`;
+          const dateStr      = `${d.monthShort} ${d.date}`;
+          const isCurrentMo  = currentMonthRef.current.readable.split(' ')[0] === d.month;
+          const isChosen     = chosenDate === dateStr;
+          const isToday      = todayStr === dateStr;
+
           return (
             <button
               key={key}
               onClick={() => pressFunc(d)}
               style={{
-                width: DayWidth,
-                height: DayWidth / 2,
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                marginBottom: 2,
+                width: DaySize, height: DaySize,
+                display: 'flex', justifyContent: 'center', alignItems: 'center',
+                background: 'none', border: 'none', cursor: 'pointer', padding: 0,
               }}
             >
-              <div
-                style={{
-                  width: 26,
-                  height: 26,
-                  borderRadius: '50%',
-                  border: isChosen ? '3px solid black' : 'none',
-                  backgroundColor: isCurrentMonth ? 'rgb(149,223,239)' : 'transparent',
-                  display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                }}
-              >
-                <span style={{ fontWeight: 'bold', fontSize: 11 }}>{d.date}</span>
+              <div style={{
+                width: 30, height: 30, borderRadius: '50%',
+                backgroundColor: isChosen ? 'var(--red)' : 'transparent',
+                border: isToday && !isChosen ? '1px solid var(--gold)' : 'none',
+                display: 'flex', justifyContent: 'center', alignItems: 'center',
+              }}>
+                <span style={{
+                  fontSize: 12,
+                  fontWeight: isChosen || isCurrentMo ? '700' : '400',
+                  color: isChosen
+                    ? 'white'
+                    : isCurrentMo
+                      ? 'var(--text)'
+                      : 'var(--text-muted)',
+                }}>
+                  {d.date}
+                </span>
               </div>
             </button>
           );
