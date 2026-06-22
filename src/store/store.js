@@ -9,6 +9,9 @@ export const reduxSlice = createSlice({
       seasonParagon:   0,
       totalParagons:   0,
       goalParagons:    0,
+      goalParagonsLinked: false,
+      goalMode:        'season',
+      goalTarget:      0,
       weeks:           0,
       daysPerWeek:     0,
       playQueue:       [],
@@ -43,6 +46,15 @@ export const reduxSlice = createSlice({
     getGoalParagons: (state, action) => {
       state.value = { ...state.value, goalParagons: action.payload };
     },
+    getGoalParagonsLinked: (state, action) => {
+      state.value = { ...state.value, goalParagonsLinked: action.payload };
+    },
+    getGoalMode: (state, action) => {
+      state.value = { ...state.value, goalMode: action.payload };
+    },
+    getGoalTarget: (state, action) => {
+      state.value = { ...state.value, goalTarget: action.payload };
+    },
     getWeeks: (state, action) => {
       state.value = { ...state.value, weeks: action.payload };
     },
@@ -73,6 +85,9 @@ export const {
   getTotalParagons,
   setSavedData,
   getGoalParagons,
+  getGoalParagonsLinked,
+  getGoalMode,
+  getGoalTarget,
   getWeeks,
   getDaysPerWeek,
   getTrackerData,
@@ -92,6 +107,9 @@ const saveData = (currentState) => {
       seasonParagon:   currentState.seasonParagon,
       totalParagons:   currentState.totalParagons,
       goalParagons:    currentState.goalParagons,
+      goalParagonsLinked: currentState.goalParagonsLinked,
+      goalMode:        currentState.goalMode,
+      goalTarget:      currentState.goalTarget,
       weeks:           currentState.weeks,
       daysPerWeek:     currentState.daysPerWeek,
       playQueue:       currentState.playQueue,
@@ -120,8 +138,24 @@ export const setTotalParagons = (val, currentState) => (dispatch) => {
   dispatch(getTotalParagons(val));
 };
 export const setGoalParagons = (val, currentState) => (dispatch) => {
-  saveData({ ...currentState, goalParagons: val });
+  saveData({ ...currentState, goalParagons: val, goalParagonsLinked: false });
   dispatch(getGoalParagons(val));
+  dispatch(getGoalParagonsLinked(false));
+};
+// Used by the Calculator's "Plan this in Tracker" connector — sets the Tracker's
+// goal and marks it as linked so the Tracker can show where the number came from.
+export const setGoalFromCalculator = (val, currentState) => (dispatch) => {
+  saveData({ ...currentState, goalParagons: val, goalParagonsLinked: true });
+  dispatch(getGoalParagons(val));
+  dispatch(getGoalParagonsLinked(true));
+};
+export const setGoalMode = (val, currentState) => (dispatch) => {
+  saveData({ ...currentState, goalMode: val });
+  dispatch(getGoalMode(val));
+};
+export const setGoalTarget = (val, currentState) => (dispatch) => {
+  saveData({ ...currentState, goalTarget: val });
+  dispatch(getGoalTarget(val));
 };
 export const setWeeks = (val, currentState) => (dispatch) => {
   saveData({ ...currentState, weeks: val });

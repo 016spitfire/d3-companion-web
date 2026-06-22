@@ -38,7 +38,7 @@ function App() {
       case 'home':           return <Welcome setScreen={setScreen} />
       case 'seasonJourney':  return <SeasonJourney />
       case 'conquests':      return <Conquests />
-      case 'paragonCalc':    return <ParagonCalculator />
+      case 'paragonCalc':    return <ParagonCalculator setScreen={setScreen} />
       case 'paragonTracker': return <ParagonTracker />
       case 'alterRites':     return <AlterOfRites />
       case 'haedrigsGift':   return <HaedrigsGift />

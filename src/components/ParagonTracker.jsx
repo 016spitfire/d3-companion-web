@@ -225,13 +225,23 @@ const ParagonTracker = () => {
       }}>
         <div style={{ display: 'flex', gap: 10 }}>
           {[
-            { label: 'Goal P',  value: reduxState.goalParagons, action: setGoalParagons },
+            { label: 'Goal P',  value: reduxState.goalParagons, action: setGoalParagons, linked: reduxState.goalParagonsLinked },
             { label: 'Weeks',   value: reduxState.weeks,         action: setWeeks },
             { label: 'Days/Wk', value: reduxState.daysPerWeek,  action: setDaysPerWeek },
-          ].map(({ label, value, action }) => (
+          ].map(({ label, value, action, linked }) => (
             <div key={label} style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <span style={{ fontSize: 10, color: 'var(--text-dim)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+              <span style={{ fontSize: 10, color: 'var(--text-dim)', letterSpacing: '0.08em', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 5 }}>
                 {label}
+                {linked && (
+                  <span style={{
+                    fontSize: 8, fontWeight: '700', letterSpacing: '0.02em', textTransform: 'none',
+                    color: 'var(--gold-bright)', backgroundColor: 'rgba(224,168,48,0.12)',
+                    border: '1px solid rgba(224,168,48,0.3)', borderRadius: 'var(--r-sm)',
+                    padding: '1px 5px',
+                  }}>
+                    from Calculator
+                  </span>
+                )}
               </span>
               <input
                 type="number"
