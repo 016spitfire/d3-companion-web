@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { FaChevronDown, FaCheck } from 'react-icons/fa';
+import { FaChevronDown, FaChevronRight, FaCheck } from 'react-icons/fa';
 import { selectReduxSlice, setJourneyProgress, setCurrentChapter } from '../store/store';
 
 const SeasonJourney = () => {
@@ -34,6 +34,14 @@ const SeasonJourney = () => {
   };
 
   const currentPct = getChapterProgress(reduxStateRef.current.currentChapter);
+
+  const currentChapterIndex = chapters.indexOf(reduxStateRef.current.currentChapter);
+  const isLastChapter = currentChapterIndex === -1 || currentChapterIndex === chapters.length - 1;
+
+  const goToNextChapter = () => {
+    if (isLastChapter) return;
+    dispatch(setCurrentChapter({ val: chapters[currentChapterIndex + 1], currentState: reduxStateRef.current }));
+  };
 
   return (
     <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', backgroundColor: 'var(--bg-base)' }}>
@@ -97,41 +105,67 @@ const SeasonJourney = () => {
       )}
 
       {/* Chapter header */}
-      <button
-        onClick={() => setShowChapterSelect(true)}
+      <div
         style={{
           flexShrink: 0,
           height: 52,
           display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          paddingLeft: 20,
-          paddingRight: 16,
           backgroundColor: '#111113',
           borderBottom: '1px solid var(--border)',
-          cursor: 'pointer',
-          gap: 12,
-          position: 'relative',
-          overflow: 'hidden',
         }}
       >
-        {/* Progress bar behind header */}
-        <div style={{
-          position: 'absolute', left: 0, top: 0, bottom: 0,
-          width: `${currentPct}%`,
-          backgroundColor: 'rgba(196,18,48,0.1)',
-          pointerEvents: 'none',
-        }} />
-        <span style={{ position: 'relative', fontWeight: '700', fontSize: 15, color: 'var(--text)', letterSpacing: '0.03em' }}>
-          {reduxStateRef.current.currentChapter}
-        </span>
-        <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 12, color: currentPct === 100 ? 'var(--gold-bright)' : 'var(--text-dim)' }}>
-            {currentPct}%
+        <button
+          onClick={() => setShowChapterSelect(true)}
+          style={{
+            flex: 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            paddingLeft: 20,
+            paddingRight: 16,
+            cursor: 'pointer',
+            gap: 12,
+            position: 'relative',
+            overflow: 'hidden',
+          }}
+        >
+          {/* Progress bar behind header */}
+          <div style={{
+            position: 'absolute', left: 0, top: 0, bottom: 0,
+            width: `${currentPct}%`,
+            backgroundColor: 'rgba(196,18,48,0.1)',
+            pointerEvents: 'none',
+          }} />
+          <span style={{ position: 'relative', fontWeight: '700', fontSize: 15, color: 'var(--text)', letterSpacing: '0.03em' }}>
+            {reduxStateRef.current.currentChapter}
           </span>
-          <FaChevronDown size={12} style={{ color: 'var(--text-muted)' }} />
-        </div>
-      </button>
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 12, color: currentPct === 100 ? 'var(--gold-bright)' : 'var(--text-dim)' }}>
+              {currentPct}%
+            </span>
+            <FaChevronDown size={12} style={{ color: 'var(--text-muted)' }} />
+          </div>
+        </button>
+
+        {/* Next chapter shortcut */}
+        <button
+          onClick={goToNextChapter}
+          disabled={isLastChapter}
+          title={isLastChapter ? 'Last chapter' : 'Next chapter'}
+          style={{
+            width: 52,
+            flexShrink: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderLeft: '1px solid var(--border)',
+            cursor: isLastChapter ? 'default' : 'pointer',
+            opacity: isLastChapter ? 0.3 : 1,
+          }}
+        >
+          <FaChevronRight size={14} style={{ color: 'var(--text-muted)' }} />
+        </button>
+      </div>
 
       {/* Task list */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px 24px' }}>
