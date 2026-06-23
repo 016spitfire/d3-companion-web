@@ -99,9 +99,9 @@ const AlterOfRites = () => {
                   <line
                     key={`${reqId}-${node.id}`}
                     x1={from.x} y1={from.y} x2={node.x} y2={node.y}
-                    stroke={active ? 'var(--red-bright)' : 'var(--border)'}
-                    strokeWidth={active ? 3 : 1.5}
-                    opacity={active ? 0.9 : 0.4}
+                    stroke={active ? 'var(--red-bright)' : 'rgba(255,255,255,0.4)'}
+                    strokeWidth={active ? 3 : 2}
+                    opacity={active ? 0.95 : 0.85}
                   />
                 );
               })
