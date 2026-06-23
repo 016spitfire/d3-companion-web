@@ -71,10 +71,11 @@ const AlterOfRites = () => {
       </div>
 
       {/* Tree — kept small on purpose; tap a node for the full detail panel below. */}
-      <div style={{ flex: 1, padding: '12px 8px 24px', display: 'flex', justifyContent: 'center' }}>
+      <div style={{ flex: 1, padding: '12px 8px 24px', display: 'flex', justifyContent: 'center', alignItems: 'flex-start' }}>
         <div style={{
           position: 'relative',
           width: 'clamp(220px, 55%, 320px)',
+          flexShrink: 0,
           aspectRatio: `${bounds.w} / ${bounds.h}`,
         }}>
 
