@@ -4,21 +4,23 @@ import { FaCheck, FaLock, FaTimes } from 'react-icons/fa';
 import { selectReduxSlice, setAltarProgress } from '../store/store';
 
 const ACCENT = { seal: '196,18,48', potion: '224,168,48', final: '255,0,255' };
-const RADIUS = 23;
+const DOT_SIZE = 14;
 
 const isEligible = (node, byId) =>
   node.unlocked || node.requires.length === 0 || node.requires.some((id) => byId[id]?.unlocked);
 
-// Bounding box of the node layout, with padding, used as the SVG viewBox.
-const getViewBox = (nodes) => {
+// Bounding box of the node layout, with padding. Shared by the SVG line layer's
+// viewBox and the HTML dot layer's percentage positions so both line up exactly,
+// regardless of how small the overall panel is rendered.
+const getBounds = (nodes) => {
   const xs = nodes.map((n) => n.x);
   const ys = nodes.map((n) => n.y);
-  const pad = RADIUS + 15;
+  const pad = 40;
   const minX = Math.min(...xs) - pad;
   const minY = Math.min(...ys) - pad;
   const w = Math.max(...xs) - Math.min(...xs) + pad * 2;
   const h = Math.max(...ys) - Math.min(...ys) + pad * 2;
-  return `${minX} ${minY} ${w} ${h}`;
+  return { minX, minY, w, h };
 };
 
 const AlterOfRites = () => {
@@ -31,6 +33,7 @@ const AlterOfRites = () => {
   const { altarProgress } = reduxState;
   const byId = Object.fromEntries(altarProgress.map((n) => [n.id, n]));
   const selected = selectedId !== null ? byId[selectedId] : null;
+  const bounds = getBounds(altarProgress);
 
   const unlockedCount = altarProgress.filter((n) => n.unlocked).length;
   const pct = Math.round((unlockedCount / altarProgress.length) * 100);
@@ -67,58 +70,74 @@ const AlterOfRites = () => {
         </div>
       </div>
 
-      {/* Tree */}
-      <div style={{ flex: 1, padding: '12px 8px 24px' }}>
-        <svg viewBox={getViewBox(altarProgress)} style={{ width: '100%', height: 'auto', display: 'block' }}>
+      {/* Tree — kept small on purpose; tap a node for the full detail panel below. */}
+      <div style={{ flex: 1, padding: '12px 8px 24px', display: 'flex', justifyContent: 'center' }}>
+        <div style={{
+          position: 'relative',
+          width: 'clamp(220px, 55%, 320px)',
+          aspectRatio: `${bounds.w} / ${bounds.h}`,
+        }}>
 
-          {/* Edges, drawn first so nodes sit on top */}
-          {altarProgress.map((node) =>
-            node.requires.map((reqId) => {
-              const from = byId[reqId];
-              const active = from?.unlocked;
-              return (
-                <line
-                  key={`${reqId}-${node.id}`}
-                  x1={from.x} y1={from.y} x2={node.x} y2={node.y}
-                  stroke={active ? 'var(--red-bright)' : 'var(--border)'}
-                  strokeWidth={active ? 2.5 : 1.5}
-                  opacity={active ? 0.9 : 0.4}
-                />
-              );
-            })
-          )}
+          {/* Edges */}
+          <svg
+            viewBox={`${bounds.minX} ${bounds.minY} ${bounds.w} ${bounds.h}`}
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }}
+          >
+            {altarProgress.map((node) =>
+              node.requires.map((reqId) => {
+                const from = byId[reqId];
+                const active = from?.unlocked;
+                return (
+                  <line
+                    key={`${reqId}-${node.id}`}
+                    x1={from.x} y1={from.y} x2={node.x} y2={node.y}
+                    stroke={active ? 'var(--red-bright)' : 'var(--border)'}
+                    strokeWidth={active ? 3 : 1.5}
+                    opacity={active ? 0.9 : 0.4}
+                  />
+                );
+              })
+            )}
+          </svg>
 
-          {/* Nodes */}
+          {/* Nodes — real HTML so labels stay legible no matter how small the panel is */}
           {altarProgress.map((node) => {
             const eligible = isEligible(node, byId);
             const accent = ACCENT[node.type];
-            const fill = node.unlocked ? `rgb(${accent})` : 'var(--bg-surface)';
-            const stroke = node.unlocked ? `rgb(${accent})` : eligible ? `rgb(${accent})` : 'var(--border-subtle)';
+            const leftPct = ((node.x - bounds.minX) / bounds.w) * 100;
+            const topPct  = ((node.y - bounds.minY) / bounds.h) * 100;
+            const above   = node.labelOffset === 'above';
 
             return (
-              <g key={node.id} onClick={() => setSelectedId(node.id)} style={{ cursor: 'pointer' }}>
-                <circle
-                  cx={node.x} cy={node.y} r={RADIUS}
-                  fill={fill}
-                  stroke={stroke}
-                  strokeWidth={eligible ? 2.5 : 1.5}
-                  strokeDasharray={!node.unlocked && eligible ? '4 2' : 'none'}
-                  opacity={eligible ? 1 : 0.45}
-                />
-                <text
-                  x={node.x} y={node.y}
-                  textAnchor="middle" dominantBaseline="central"
-                  fontSize={node.label.length > 1 ? 11 : 13}
-                  fontWeight="700"
-                  fill={node.unlocked ? 'white' : eligible ? 'var(--text)' : 'var(--text-muted)'}
-                  style={{ pointerEvents: 'none', userSelect: 'none' }}
-                >
-                  {node.label}
-                </text>
-              </g>
+              <button
+                key={node.id}
+                onClick={() => setSelectedId(node.id)}
+                style={{
+                  position: 'absolute',
+                  left: `${leftPct}%`, top: `${topPct}%`,
+                  transform: 'translate(-50%, -50%)',
+                  display: 'flex', flexDirection: above ? 'column-reverse' : 'column',
+                  alignItems: 'center', gap: 2,
+                  background: 'none', border: 'none', padding: 0,
+                  cursor: 'pointer', opacity: eligible ? 1 : 0.45,
+                }}
+              >
+                <div style={{
+                  width: DOT_SIZE, height: DOT_SIZE, borderRadius: '50%', flexShrink: 0,
+                  backgroundColor: node.unlocked ? `rgb(${accent})` : 'var(--bg-surface)',
+                  border: `2px solid ${node.unlocked || eligible ? `rgb(${accent})` : 'var(--border-subtle)'}`,
+                }} />
+                <span style={{
+                  fontSize: 8, fontWeight: '600', lineHeight: 1.15, textAlign: 'center',
+                  width: 60, color: node.unlocked ? 'var(--text)' : eligible ? 'var(--text-dim)' : 'var(--text-muted)',
+                  textShadow: '0 0 4px var(--bg-base), 0 0 4px var(--bg-base)',
+                }}>
+                  {node.description}
+                </span>
+              </button>
             );
           })}
-        </svg>
+        </div>
       </div>
 
       {/* Detail panel */}
