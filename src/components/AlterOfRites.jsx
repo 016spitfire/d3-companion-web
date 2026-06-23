@@ -212,13 +212,19 @@ const AlterOfRites = () => {
               node.requires.map((reqId) => {
                 const from = byId[reqId];
                 const active = from?.unlocked;
+                // A live path (source unlocked) that leads to a node not yet
+                // unlocked itself is an actionable route right now — a medium
+                // version of the destination's own accent, sitting between the
+                // dim "not yet" lines and the full-bright "done" ones, rather
+                // than a separate hue that doesn't fit the rest of the palette.
+                const ready = active && !node.unlocked;
                 return (
                   <line
                     key={`${reqId}-${node.id}`}
                     x1={from.x} y1={from.y} x2={node.x} y2={node.y}
-                    stroke={active ? 'var(--red-bright)' : 'rgba(196,18,48,0.45)'}
-                    strokeWidth={active ? 3 : 2}
-                    opacity={active ? 0.95 : 0.85}
+                    stroke={ready ? `rgba(${ACCENT[node.type]},0.7)` : active ? 'var(--red-bright)' : 'rgba(196,18,48,0.45)'}
+                    strokeWidth={ready || active ? 3 : 2}
+                    opacity={ready || active ? 0.95 : 0.85}
                   />
                 );
               })
@@ -262,7 +268,7 @@ const AlterOfRites = () => {
                     : eligible
                       ? `rgba(${accent},0.22)`
                       : 'rgba(255,255,255,0.07)',
-                  border: `2.5px solid ${node.unlocked || eligible ? `rgb(${accent})` : 'rgba(255,255,255,0.35)'}`,
+                  border: `2.5px solid ${node.unlocked ? `rgb(${accent})` : eligible ? `rgba(${accent},0.65)` : 'rgba(255,255,255,0.35)'}`,
                 }} />
                 <span style={{
                   position: 'absolute',
