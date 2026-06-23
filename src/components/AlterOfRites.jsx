@@ -131,20 +131,24 @@ const AlterOfRites = () => {
                   transform: 'translate(-50%, -50%)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   background: 'none', border: 'none', padding: 0,
-                  cursor: 'pointer', opacity: eligible ? 1 : 0.45,
+                  cursor: 'pointer', opacity: eligible ? 1 : 0.85,
                 }}
               >
                 <div style={{
                   width: DOT_SIZE, height: DOT_SIZE, borderRadius: '50%', flexShrink: 0,
-                  backgroundColor: node.unlocked ? `rgb(${accent})` : 'var(--bg-surface)',
-                  border: `2px solid ${node.unlocked || eligible ? `rgb(${accent})` : 'var(--border-subtle)'}`,
+                  backgroundColor: node.unlocked
+                    ? `rgb(${accent})`
+                    : eligible
+                      ? `rgba(${accent},0.22)`
+                      : 'rgba(255,255,255,0.07)',
+                  border: `2.5px solid ${node.unlocked || eligible ? `rgb(${accent})` : 'rgba(255,255,255,0.35)'}`,
                 }} />
                 <span style={{
                   position: 'absolute',
                   left: '50%', transform: 'translateX(-50%)',
                   ...(above ? { bottom: 'calc(100% + 2px)' } : { top: 'calc(100% + 2px)' }),
                   fontSize: LABEL_SIZE, fontWeight: '600', lineHeight: 1.15, textAlign: 'center',
-                  width: LABEL_WIDTH, color: node.unlocked ? 'var(--text)' : eligible ? 'var(--text-dim)' : 'var(--text-muted)',
+                  width: LABEL_WIDTH, color: node.unlocked || eligible ? 'var(--text)' : 'var(--text-dim)',
                   textShadow: '0 0 4px var(--bg-base), 0 0 4px var(--bg-base)',
                   pointerEvents: 'none',
                 }}>
