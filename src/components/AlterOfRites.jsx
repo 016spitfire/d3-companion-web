@@ -4,7 +4,13 @@ import { FaCheck, FaLock, FaTimes } from 'react-icons/fa';
 import { selectReduxSlice, setAltarProgress } from '../store/store';
 
 const ACCENT = { seal: '196,18,48', potion: '224,168,48', final: '255,0,255' };
-const DOT_SIZE = 14;
+// Sized in container-query units (cqw = % of the tree panel's own width) so dots,
+// tap targets, and labels scale up together as the panel grows, with clamps so
+// nothing gets too small to read or too large to look sane at 750px wide.
+const DOT_SIZE   = 'clamp(12px, 3.2cqw, 22px)';
+const HIT_SIZE   = 'clamp(26px, 5cqw, 38px)';
+const LABEL_SIZE = 'clamp(10px, 2.2cqw, 15px)';
+const LABEL_WIDTH = 'clamp(54px, 11cqw, 84px)';
 
 const isEligible = (node, byId) =>
   node.unlocked || node.requires.length === 0 || node.requires.some((id) => byId[id]?.unlocked);
@@ -77,6 +83,7 @@ const AlterOfRites = () => {
           width: '100%',
           maxWidth: 750,
           aspectRatio: `${bounds.w} / ${bounds.h}`,
+          containerType: 'inline-size',
         }}>
 
           {/* Edges */}
@@ -120,7 +127,7 @@ const AlterOfRites = () => {
                 style={{
                   position: 'absolute',
                   left: `${leftPct}%`, top: `${topPct}%`,
-                  width: 28, height: 28,
+                  width: HIT_SIZE, height: HIT_SIZE,
                   transform: 'translate(-50%, -50%)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   background: 'none', border: 'none', padding: 0,
@@ -136,8 +143,8 @@ const AlterOfRites = () => {
                   position: 'absolute',
                   left: '50%', transform: 'translateX(-50%)',
                   ...(above ? { bottom: 'calc(100% + 2px)' } : { top: 'calc(100% + 2px)' }),
-                  fontSize: 8, fontWeight: '600', lineHeight: 1.15, textAlign: 'center',
-                  width: 60, color: node.unlocked ? 'var(--text)' : eligible ? 'var(--text-dim)' : 'var(--text-muted)',
+                  fontSize: LABEL_SIZE, fontWeight: '600', lineHeight: 1.15, textAlign: 'center',
+                  width: LABEL_WIDTH, color: node.unlocked ? 'var(--text)' : eligible ? 'var(--text-dim)' : 'var(--text-muted)',
                   textShadow: '0 0 4px var(--bg-base), 0 0 4px var(--bg-base)',
                   pointerEvents: 'none',
                 }}>
