@@ -1,5 +1,6 @@
 import { createSlice, configureStore } from '@reduxjs/toolkit';
 import seasonJourneyData from '../data/seasonJourneyData';
+import altarOfRitesData from '../data/altarOfRitesData';
 
 export const reduxSlice = createSlice({
   name: 'reduxSlice',
@@ -22,6 +23,7 @@ export const reduxSlice = createSlice({
       height: typeof window !== 'undefined' ? window.innerHeight : 800,
       journeyProgress: seasonJourneyData,
       currentChapter:  seasonJourneyData[0].chapter,
+      altarProgress:   altarOfRitesData,
     },
   },
   reducers: {
@@ -33,6 +35,9 @@ export const reduxSlice = createSlice({
     },
     getCurrentChapter: (state, action) => {
       state.value = { ...state.value, currentChapter: action.payload };
+    },
+    getAltarProgress: (state, action) => {
+      state.value = { ...state.value, altarProgress: action.payload };
     },
     getSeasonalParagon: (state, action) => {
       state.value = { ...state.value, seasonParagon: action.payload };
@@ -70,7 +75,11 @@ export const reduxSlice = createSlice({
         const savedItem = action.payload.journeyProgress?.find((datum) => datum.key === d.key);
         return savedItem ? { ...d, completed: savedItem.completed } : d;
       });
-      state.value = { ...state.value, ...action.payload, journeyProgress: journeyData };
+      const altarData = altarOfRitesData.map((d) => {
+        const savedItem = action.payload.altarProgress?.find((datum) => datum.id === d.id);
+        return savedItem ? { ...d, unlocked: savedItem.unlocked } : d;
+      });
+      state.value = { ...state.value, ...action.payload, journeyProgress: journeyData, altarProgress: altarData };
     },
     getNewStartDate: (state, action) => {
       state.value = { ...state.value, startDate: action.payload };
@@ -94,6 +103,7 @@ export const {
   getNewStartDate,
   getSeasonJourneyProgress,
   getCurrentChapter,
+  getAltarProgress,
 } = reduxSlice.actions;
 
 export const setDims = () => (dispatch) => {
@@ -118,6 +128,7 @@ const saveData = (currentState) => {
       startDate:       currentState.startDate,
       journeyProgress: currentState.journeyProgress,
       currentChapter:  currentState.currentChapter,
+      altarProgress:   currentState.altarProgress,
     });
     localStorage.setItem('DIABLO_3_COMPANION_SAVE_DATA', jsonValue);
   } catch (e) {
@@ -184,6 +195,21 @@ export const setJourneyProgress = ({ val, currentState }) => (dispatch) => {
 export const setCurrentChapter = ({ val, currentState }) => (dispatch) => {
   saveData({ ...currentState, currentChapter: val });
   dispatch(getCurrentChapter(val));
+};
+// Toggles a node's unlocked state. Un-toggling is always allowed (fixing a misclick),
+// but a locked node can only be newly unlocked if at least one of its prerequisites
+// (OR logic — any one is enough) is already unlocked, or it has none.
+export const setAltarProgress = ({ val, currentState }) => (dispatch) => {
+  if (!val.unlocked) {
+    const eligible = val.requires.length === 0
+      || val.requires.some((reqId) => currentState.altarProgress.find((d) => d.id === reqId)?.unlocked);
+    if (!eligible) return;
+  }
+  const newVal = currentState.altarProgress.map((d) =>
+    val.id === d.id ? { ...d, unlocked: !d.unlocked } : d
+  );
+  saveData({ ...currentState, altarProgress: newVal });
+  dispatch(getAltarProgress(newVal));
 };
 
 export const getSavedData = () => (dispatch) => {
