@@ -74,8 +74,8 @@ const AlterOfRites = () => {
       <div style={{ flex: 1, padding: '12px 8px 24px', display: 'flex', justifyContent: 'center', alignItems: 'flex-start' }}>
         <div style={{
           position: 'relative',
-          width: 'clamp(220px, 55%, 320px)',
-          flexShrink: 0,
+          width: '100%',
+          maxWidth: 750,
           aspectRatio: `${bounds.w} / ${bounds.h}`,
         }}>
 
