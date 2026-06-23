@@ -110,15 +110,19 @@ const AlterOfRites = () => {
             const above   = node.labelOffset === 'above';
 
             return (
+              // The button's box is centered exactly on the coordinate point — the
+              // dot sits centered inside it, so the dot's center always matches the
+              // line endpoint. The label is an absolutely-positioned child anchored
+              // to the button's edge, so it can't pull the dot off-point.
               <button
                 key={node.id}
                 onClick={() => setSelectedId(node.id)}
                 style={{
                   position: 'absolute',
                   left: `${leftPct}%`, top: `${topPct}%`,
+                  width: 28, height: 28,
                   transform: 'translate(-50%, -50%)',
-                  display: 'flex', flexDirection: above ? 'column-reverse' : 'column',
-                  alignItems: 'center', gap: 2,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
                   background: 'none', border: 'none', padding: 0,
                   cursor: 'pointer', opacity: eligible ? 1 : 0.45,
                 }}
@@ -129,9 +133,13 @@ const AlterOfRites = () => {
                   border: `2px solid ${node.unlocked || eligible ? `rgb(${accent})` : 'var(--border-subtle)'}`,
                 }} />
                 <span style={{
+                  position: 'absolute',
+                  left: '50%', transform: 'translateX(-50%)',
+                  ...(above ? { bottom: 'calc(100% + 2px)' } : { top: 'calc(100% + 2px)' }),
                   fontSize: 8, fontWeight: '600', lineHeight: 1.15, textAlign: 'center',
                   width: 60, color: node.unlocked ? 'var(--text)' : eligible ? 'var(--text-dim)' : 'var(--text-muted)',
                   textShadow: '0 0 4px var(--bg-base), 0 0 4px var(--bg-base)',
+                  pointerEvents: 'none',
                 }}>
                   {node.description}
                 </span>
