@@ -211,6 +211,16 @@ export const setAltarProgress = ({ val, currentState }) => (dispatch) => {
   saveData({ ...currentState, altarProgress: newVal });
   dispatch(getAltarProgress(newVal));
 };
+// Locks a node plus every node that was only unlocked through it (and anything
+// that, in turn, was only unlocked through those) — used after the cascade
+// preview has been confirmed. Always locking, so no eligibility check needed.
+export const setAltarCascade = (idsToLock, currentState) => (dispatch) => {
+  const newVal = currentState.altarProgress.map((d) =>
+    idsToLock.includes(d.id) ? { ...d, unlocked: false } : d
+  );
+  saveData({ ...currentState, altarProgress: newVal });
+  dispatch(getAltarProgress(newVal));
+};
 
 export const getSavedData = () => (dispatch) => {
   try {
