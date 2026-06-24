@@ -120,10 +120,12 @@ const AlterOfRites = () => {
   // unlocked, not which ones, since the cost is the same regardless of choice.
   const unlockedSealCount = altarProgress.filter((n) => n.type === 'seal' && n.unlocked).length;
   const unlockedPotionCount = altarProgress.filter((n) => n.type === 'potion' && n.unlocked).length;
-  // The plan is a historical record of intended order — "next" is just the first
-  // entry that isn't really unlocked yet, so it naturally advances as you play
-  // without needing the plan itself to be edited.
-  const nextPlannedId = altarPlan.find((id) => !byId[id]?.unlocked);
+  // Seals and Potions run on two completely independent cost ladders, so they
+  // each get their own "next" — there isn't one shared sequence to advance
+  // through. Same idea as before: "next" is just the first entry of that type
+  // that isn't really unlocked yet, so it advances on its own as you play.
+  const nextSealId = altarPlan.filter((id) => byId[id]?.type === 'seal').find((id) => !byId[id]?.unlocked);
+  const nextPotionId = altarPlan.filter((id) => byId[id]?.type === 'potion').find((id) => !byId[id]?.unlocked);
 
   const toggle = (node) => {
     dispatch(setAltarProgress({ val: node, currentState: reduxStateRef.current }));
@@ -308,8 +310,8 @@ const AlterOfRites = () => {
         <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
           {planningMode
             ? 'Tap a node to add or remove it from your plan, in the order you want to take them.'
-            : nextPlannedId
-              ? <>Tap a node to unlock or undo it. <span style={{ color: `rgb(${PLAN_ACCENT})` }}>The glowing node</span> is next on your plan.</>
+            : (nextSealId || nextPotionId)
+              ? <>Tap a node to unlock or undo it. <span style={{ color: `rgb(${PLAN_ACCENT})` }}>{nextSealId && nextPotionId ? 'The glowing nodes are' : 'The glowing node is'}</span> next on your plan.</>
               : 'Tap a node to unlock or undo it. Hover for the full effect and cost.'}
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 12 }}>
@@ -420,14 +422,18 @@ const AlterOfRites = () => {
             // progress: already-real nodes have nothing left to plan, the final
             // bonus isn't a choice, and "ready to plan" depends on the plan-so-far
             // rather than what's really unlocked.
-            const planIndex = altarPlan.indexOf(node.id);
+            // Badge number is this node's position within its OWN type's planned
+            // order, not its position in the combined array — Seals and Potions
+            // are independent sequences, so "5th overall" wouldn't mean anything.
+            const sameTypePlan = altarPlan.filter((id) => byId[id]?.type === node.type);
+            const planIndex = sameTypePlan.indexOf(node.id);
             const planned = planIndex !== -1;
             const planDone = planningMode && node.unlocked;
             const planReady = planningMode && !planned && !node.unlocked && node.type !== 'final' && isPlanEligible(node, altarPlan, byId);
             const planInactive = planningMode && !planned && !planDone && !planReady;
             // The plan's "what to do next in-game" callout — only meaningful in
             // the normal view, since planning mode already shows the full order.
-            const isNext = !planningMode && node.id === nextPlannedId;
+            const isNext = !planningMode && (node.id === nextSealId || node.id === nextPotionId);
 
             return (
               // The button's box is centered exactly on the coordinate point — the
