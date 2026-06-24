@@ -32,30 +32,45 @@ const isEligible = (node, byId) =>
 
 // If `startId` gets locked, find every other currently-unlocked node that's only
 // standing because of it (directly or transitively) and would become invalid too.
-// Seals/Potions use OR logic on `requires` (locked only if NONE of their listed
-// prerequisites remain unlocked). The final bonus is the one exception — it
-// requires EVERY other node, so losing any single one takes it down. Repeats
-// passes over the whole set until a pass makes no further changes, since locking
-// one node can strand another, which can strand another, and so on.
+//
+// This is a reachability problem, not a "shrink the support graph" problem — it
+// has to be computed by growing a confirmed-still-valid set outward from real
+// roots, not by removing nodes once their support looks gone. The shrink-based
+// version is vulnerable to mutual references: two nodes that each list the other
+// as an alternate prerequisite (this graph actually has one — Malice and Omen
+// each appear in the other's requires list) can "rescue" each other forever,
+// since neither is ever marked invalid before the other checks it. Growing from
+// confirmed roots sidesteps this entirely: a cycle with no connection back to a
+// real root just never gets reached, regardless of how the nodes reference each
+// other. The final bonus is handled separately since it requires EVERY other
+// node rather than any one of a list.
 const computeCascadeLocks = (startId, progress) => {
   const byId = Object.fromEntries(progress.map((n) => [n.id, n]));
-  const locked = new Set([startId]);
+  const stillValid = new Set();
   let changed = true;
   while (changed) {
     changed = false;
     for (const node of progress) {
-      if (!node.unlocked || locked.has(node.id)) continue;
-      const stillSupported = node.type === 'final'
-        ? progress.filter((n) => n.type !== 'final').every((n) => n.unlocked && !locked.has(n.id))
-        : node.requires.length === 0 || node.requires.some((rid) => byId[rid]?.unlocked && !locked.has(rid));
-      if (!stillSupported) {
-        locked.add(node.id);
+      if (node.id === startId || !node.unlocked || stillValid.has(node.id) || node.type === 'final') continue;
+      const supported = node.requires.length === 0
+        || node.requires.some((rid) => rid !== startId && byId[rid]?.unlocked && stillValid.has(rid));
+      if (supported) {
+        stillValid.add(node.id);
+        changed = true;
+      }
+    }
+    const finalNode = progress.find((n) => n.type === 'final');
+    if (finalNode && finalNode.id !== startId && finalNode.unlocked && !stillValid.has(finalNode.id)) {
+      const allOthersValid = progress
+        .filter((n) => n.type !== 'final' && n.id !== startId)
+        .every((n) => stillValid.has(n.id));
+      if (allOthersValid) {
+        stillValid.add(finalNode.id);
         changed = true;
       }
     }
   }
-  locked.delete(startId);
-  return Array.from(locked);
+  return progress.filter((n) => n.unlocked && n.id !== startId && !stillValid.has(n.id)).map((n) => n.id);
 };
 
 // A node is plannable if at least one of its prerequisites is either already
@@ -66,29 +81,28 @@ const isPlanEligible = (node, plan, byId) =>
   || node.requires.length === 0
   || node.requires.some((rid) => byId[rid]?.unlocked || plan.includes(rid));
 
-// Mirrors computeCascadeLocks, but for the plan: if `startId` is removed from
-// the plan, find every other planned node that was only plannable because of
-// it (directly or transitively) and would no longer be, given everything else
-// already really unlocked stays unlocked. The final bonus isn't plannable
+// Same reachability approach as computeCascadeLocks, applied to the plan: grow
+// a confirmed-still-plannable set outward from real roots/real-unlocked nodes
+// instead of shrinking from "everything," so the same mutual-reference cycle
+// (Malice/Omen) can't prop itself up forever. The final bonus isn't plannable
 // (it's automatic), so it never appears here.
 const computeCascadePlanRemovals = (startId, plan, byId) => {
-  const removed = new Set([startId]);
+  const stillValid = new Set();
   let changed = true;
   while (changed) {
     changed = false;
     for (const id of plan) {
-      if (removed.has(id)) continue;
+      if (id === startId || stillValid.has(id)) continue;
       const node = byId[id];
-      const stillSupported = node.requires.length === 0
-        || node.requires.some((rid) => byId[rid]?.unlocked || (plan.includes(rid) && !removed.has(rid)));
-      if (!stillSupported) {
-        removed.add(id);
+      const supported = node.requires.length === 0
+        || node.requires.some((rid) => rid !== startId && (byId[rid]?.unlocked || (plan.includes(rid) && stillValid.has(rid))));
+      if (supported) {
+        stillValid.add(id);
         changed = true;
       }
     }
   }
-  removed.delete(startId);
-  return Array.from(removed);
+  return plan.filter((id) => id !== startId && !stillValid.has(id));
 };
 
 // Bounding box of the node layout, with padding. Shared by the SVG line layer's
