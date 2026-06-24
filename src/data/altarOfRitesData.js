@@ -10,12 +10,13 @@
 // labelOffset: which side of the node the short description label should sit on
 // ('above' or 'below'), so labels don't collide in tightly-packed rows.
 //
-// IMPORTANT: Seal nodes have no per-node cost field. The cost for unlocking a Seal
-// is keyed by *how many Seals you've unlocked so far*, not by which specific Seal
-// you pick — the cost is identical regardless of which eligible node you choose,
-// and follows the same preset sequence (altarSealCostSequence below) no matter
-// what order you unlock things in. Potion Powers and the final bonus are paid in
-// a separate currency and do have a fixed per-node cost.
+// IMPORTANT: Seal and Potion nodes have no per-node cost field. The cost for
+// unlocking either is keyed by *how many of that type you've unlocked so far*,
+// not by which specific node you pick — identical regardless of which eligible
+// node you choose, following a preset sequence (altarSealCostSequence /
+// altarPotionCostSequence below) no matter what order you unlock things in.
+// The final bonus is free and auto-unlocks on full completion, so it keeps its
+// own fixed `cost` field as a description rather than a real cost.
 //
 // Sourced from the node graph (NodeRequirements/NodeCenters/NodeLabels/NodeDescriptions/
 // Offerings) used by the community Altar of Rites planner at
@@ -51,11 +52,11 @@ const altarOfRitesData = [
   { id: 25, label: 'Z',  name: 'Pattern',     description: 'Kadala Leggies x2',          effect: "Double the chance to find a legendary item purchased from Kadala.",                                                                                      requires: [19],          type: 'seal', unlocked: false, x: 1275, y: 800, labelOffset: 'above' },
 
   // Legendary Potion Powers — paid in Primordial Ashes, independent of the main sequence above.
-  // Unlike Seals, these do have a fixed per-node cost (only 3 of them, each gated behind
-  // its own distinct branch of the tree).
-  { id: 26, label: 'AA', name: 'Mother',      description: 'Triune Circles',             effect: "When you drink your health potion, you manifest one of three runic circles on the ground that grant increased damage, increased cooldown reduction, or increased resource cost reduction.", cost: ['55 Primordial Ashes'],  requires: [20, 21], type: 'potion', unlocked: false, x: 868,  y: 863, labelOffset: 'above' },
-  { id: 27, label: 'AB', name: 'Mortal',      description: '-25% Dmg within 25yds',      effect: "When you drink your health potion, all enemies within 25 yards deal 25% less damage.",                                                                  cost: ['110 Primordial Ashes'], requires: [22, 23], type: 'potion', unlocked: false, x: 1044, y: 863, labelOffset: 'below' },
-  { id: 28, label: 'AC', name: 'Father',      description: 'Random Shrine',              effect: "When you drink your health potion, gain a random shrine effect.\n - Excludes Empowered (Resource Rate / Cool Down Reduction)",                          cost: ['165 Primordial Ashes'], requires: [24, 25], type: 'potion', unlocked: false, x: 1222, y: 863, labelOffset: 'above' },
+  // Like Seals, cost is keyed by which Potion-unlock-number this is (1st/2nd/3rd),
+  // not by which specific Potion you pick — see altarPotionCostSequence below.
+  { id: 26, label: 'AA', name: 'Mother',      description: 'Triune Circles',             effect: "When you drink your health potion, you manifest one of three runic circles on the ground that grant increased damage, increased cooldown reduction, or increased resource cost reduction.", requires: [20, 21], type: 'potion', unlocked: false, x: 868,  y: 863, labelOffset: 'above' },
+  { id: 27, label: 'AB', name: 'Mortal',      description: '-25% Dmg within 25yds',      effect: "When you drink your health potion, all enemies within 25 yards deal 25% less damage.",                                                                  requires: [22, 23], type: 'potion', unlocked: false, x: 1044, y: 863, labelOffset: 'below' },
+  { id: 28, label: 'AC', name: 'Father',      description: 'Random Shrine',              effect: "When you drink your health potion, gain a random shrine effect.\n - Excludes Empowered (Resource Rate / Cool Down Reduction)",                          requires: [24, 25], type: 'potion', unlocked: false, x: 1222, y: 863, labelOffset: 'above' },
 
   // Final bonus — free, auto-unlocks once every seal and potion above is unlocked.
   { id: 29, label: 'AD', name: 'Warning',     description: 'Double Primals',             effect: "When a primal item drops, a second random primal item drops as well.",                                                                                  cost: ['Unlocked automatically on full completion'], requires: [], type: 'final', unlocked: false, x: 1045, y: 920, labelOffset: 'below' },
@@ -91,6 +92,15 @@ export const altarSealCostSequence = [
   ['Any Augmented Weapon'],
   ['Staff of Herding'],
   ['1,600 Blood Shards'],
+];
+
+// The 3-step Potion Power cost ladder, in its own separate Primordial Ashes pool —
+// same mechanic as altarSealCostSequence: cost is keyed by which Potion-unlock-
+// number this is, not by which specific Potion you choose.
+export const altarPotionCostSequence = [
+  '55 Primordial Ashes',
+  '110 Primordial Ashes',
+  '165 Primordial Ashes',
 ];
 
 export default altarOfRitesData;

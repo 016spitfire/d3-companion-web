@@ -24,6 +24,7 @@ export const reduxSlice = createSlice({
       journeyProgress: seasonJourneyData,
       currentChapter:  seasonJourneyData[0].chapter,
       altarProgress:   altarOfRitesData,
+      altarPlan:       [], // ordered node ids — your intended unlock order, separate from real progress
     },
   },
   reducers: {
@@ -38,6 +39,9 @@ export const reduxSlice = createSlice({
     },
     getAltarProgress: (state, action) => {
       state.value = { ...state.value, altarProgress: action.payload };
+    },
+    getAltarPlan: (state, action) => {
+      state.value = { ...state.value, altarPlan: action.payload };
     },
     getSeasonalParagon: (state, action) => {
       state.value = { ...state.value, seasonParagon: action.payload };
@@ -79,7 +83,8 @@ export const reduxSlice = createSlice({
         const savedItem = action.payload.altarProgress?.find((datum) => datum.id === d.id);
         return savedItem ? { ...d, unlocked: savedItem.unlocked } : d;
       });
-      state.value = { ...state.value, ...action.payload, journeyProgress: journeyData, altarProgress: altarData };
+      const altarPlan = Array.isArray(action.payload.altarPlan) ? action.payload.altarPlan : [];
+      state.value = { ...state.value, ...action.payload, journeyProgress: journeyData, altarProgress: altarData, altarPlan };
     },
     getNewStartDate: (state, action) => {
       state.value = { ...state.value, startDate: action.payload };
@@ -104,6 +109,7 @@ export const {
   getSeasonJourneyProgress,
   getCurrentChapter,
   getAltarProgress,
+  getAltarPlan,
 } = reduxSlice.actions;
 
 export const setDims = () => (dispatch) => {
@@ -129,6 +135,7 @@ const saveData = (currentState) => {
       journeyProgress: currentState.journeyProgress,
       currentChapter:  currentState.currentChapter,
       altarProgress:   currentState.altarProgress,
+      altarPlan:       currentState.altarPlan,
     });
     localStorage.setItem('DIABLO_3_COMPANION_SAVE_DATA', jsonValue);
   } catch (e) {
@@ -220,6 +227,13 @@ export const setAltarCascade = (idsToLock, currentState) => (dispatch) => {
   );
   saveData({ ...currentState, altarProgress: newVal });
   dispatch(getAltarProgress(newVal));
+};
+
+// Bulk-replaces the planned order — used for both appending a newly-planned
+// node and applying a confirmed plan cascade-removal in one shot.
+export const setAltarPlan = (newPlan, currentState) => (dispatch) => {
+  saveData({ ...currentState, altarPlan: newPlan });
+  dispatch(getAltarPlan(newPlan));
 };
 
 export const getSavedData = () => (dispatch) => {
