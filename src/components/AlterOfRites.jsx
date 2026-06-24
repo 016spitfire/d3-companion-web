@@ -110,7 +110,15 @@ const AlterOfRites = () => {
   const [planningMode, setPlanningMode] = useState(false);
   reduxStateRef.current = reduxState;
 
-  const { altarProgress, altarPlan } = reduxState;
+  const { altarPlan } = reduxState;
+  // The final bonus isn't something you ever toggle yourself — in-game it just
+  // happens once everything else is done. Its "unlocked" is fully derived here
+  // rather than read from stored state, so there's no real toggle to click and
+  // nothing that could ever desync from the other 29 nodes.
+  const allOthersUnlocked = reduxState.altarProgress.filter((n) => n.type !== 'final').every((n) => n.unlocked);
+  const altarProgress = reduxState.altarProgress.map((n) =>
+    n.type === 'final' ? { ...n, unlocked: allOthersUnlocked } : n
+  );
   const byId = Object.fromEntries(altarProgress.map((n) => [n.id, n]));
   const bounds = getBounds(altarProgress);
 
@@ -136,6 +144,7 @@ const AlterOfRites = () => {
   // out progress; unlocking (and locking something with no dependents) is safe
   // and happens immediately.
   const handleNodeClick = (node) => {
+    if (node.type === 'final') return;
     if (node.unlocked) {
       const affectedIds = computeCascadeLocks(node.id, altarProgress);
       if (affectedIds.length > 0) {
@@ -452,7 +461,7 @@ const AlterOfRites = () => {
                   transform: 'translate(-50%, -50%)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   background: 'none', border: 'none', padding: 0,
-                  cursor: planningMode ? (planDone || planInactive ? 'default' : 'pointer') : 'pointer',
+                  cursor: planningMode ? (planDone || planInactive ? 'default' : 'pointer') : (node.type === 'final' ? 'default' : 'pointer'),
                   opacity: planningMode ? (planDone || planInactive ? 0.4 : 1) : (eligible ? 1 : 0.85),
                   zIndex: hovered ? 5 : 1,
                 }}
