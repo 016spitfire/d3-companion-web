@@ -2,7 +2,12 @@ import { useState, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { FaChevronDown, FaChevronRight, FaFlask } from 'react-icons/fa';
 import { selectReduxSlice, setAltarProgress, setAltarCascade, setAltarPlan } from '../store/store';
-import { altarSealCostSequence, altarPotionCostSequence } from '../data/altarOfRitesData';
+import { altarSealCostSequence, altarPotionCostSequence, altarMatHuntingRoute, altarDamagePushingRoute } from '../data/altarOfRitesData';
+
+const SUGGESTED_ROUTES = [
+  { key: 'matHunting', label: 'Mat Hunting', route: altarMatHuntingRoute },
+  { key: 'damagePushing', label: 'Damage & Pushing', route: altarDamagePushingRoute },
+];
 
 // Seals stay the app's red. Potions and the final bonus use Diablo's own
 // item-rarity colors (Set green / Magic blue) — chosen specifically because
@@ -108,6 +113,7 @@ const AlterOfRites = () => {
   const [cascadeWarning, setCascadeWarning] = useState(null); // { mode: 'unlock'|'plan', nodeId, affectedIds } | null
   const [showSpentCosts, setShowSpentCosts] = useState(false);
   const [planningMode, setPlanningMode] = useState(false);
+  const [routeToLoad, setRouteToLoad] = useState(null); // { key, label, route } | null
   reduxStateRef.current = reduxState;
 
   const { altarPlan } = reduxState;
@@ -182,6 +188,22 @@ const AlterOfRites = () => {
       dispatch(setAltarCascade(removeIds, reduxStateRef.current));
     }
     setCascadeWarning(null);
+  };
+
+  // Loading a curated route is just setting altarPlan wholesale — once it's
+  // loaded it's an ordinary plan, editable the same way as one built by hand
+  // (including the cascade-on-remove behavior above). Confirm first if doing
+  // so would actually overwrite existing plan progress.
+  const requestLoadRoute = (suggested) => {
+    if (altarPlan.length > 0) {
+      setRouteToLoad(suggested);
+      return;
+    }
+    dispatch(setAltarPlan(suggested.route, reduxStateRef.current));
+  };
+  const confirmLoadRoute = () => {
+    dispatch(setAltarPlan(routeToLoad.route, reduxStateRef.current));
+    setRouteToLoad(null);
   };
 
   // Same breakpoint the app already uses to switch from BottomNav to Sidebar.
@@ -323,6 +345,28 @@ const AlterOfRites = () => {
               ? <>Tap a node to unlock or undo it. <span style={{ color: `rgb(${PLAN_ACCENT})` }}>{nextSealId && nextPotionId ? 'The glowing nodes are' : 'The glowing node is'}</span> next on your plan.</>
               : 'Tap a node to unlock or undo it. Hover for the full effect and cost.'}
         </p>
+
+        {planningMode && (
+          <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 11, color: 'var(--text-muted)', alignSelf: 'center' }}>
+              Load a suggested route:
+            </span>
+            {SUGGESTED_ROUTES.map((suggested) => (
+              <button
+                key={suggested.key}
+                onClick={() => requestLoadRoute(suggested)}
+                style={{
+                  height: 28, padding: '0 10px',
+                  backgroundColor: 'var(--bg-raised)', border: '1px solid var(--border-subtle)',
+                  borderRadius: 'var(--r-sm)', color: 'var(--text-dim)',
+                  fontSize: 11, fontWeight: '700', cursor: 'pointer',
+                }}
+              >
+                {suggested.label}
+              </button>
+            ))}
+          </div>
+        )}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 12 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: 11, color: 'var(--text-muted)', letterSpacing: '0.06em' }}>
@@ -587,6 +631,64 @@ const AlterOfRites = () => {
                 }}
               >
                 {cascadeWarning.mode === 'plan' ? 'Unplan Them All' : 'Lock Them All'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Route-load overwrite warning — only shown when there's an existing
+          plan to actually lose; an empty plan loads the route immediately. */}
+      {routeToLoad && (
+        <div
+          onClick={() => setRouteToLoad(null)}
+          style={{
+            position: 'absolute', inset: 0, zIndex: 10,
+            backgroundColor: 'rgba(0,0,0,0.85)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: 24,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: '100%', maxWidth: 380,
+              backgroundColor: '#161618',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--r-lg)',
+              padding: '20px 20px 16px',
+              display: 'flex', flexDirection: 'column', gap: 12,
+            }}
+          >
+            <span style={{ fontSize: 15, fontWeight: '700', color: 'var(--text)' }}>
+              Replace your current plan?
+            </span>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+              Loading the {routeToLoad.label} route will overwrite your existing {altarPlan.length}-node plan. This doesn't touch anything you've actually unlocked.
+            </p>
+            <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
+              <button
+                onClick={() => setRouteToLoad(null)}
+                style={{
+                  flex: 1, height: 42,
+                  backgroundColor: 'var(--bg-raised)', border: '1px solid var(--border-subtle)',
+                  borderRadius: 'var(--r-md)', color: 'var(--text-dim)',
+                  fontSize: 13, fontWeight: '700', cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmLoadRoute}
+                style={{
+                  flex: 1, height: 42,
+                  background: `linear-gradient(to right, rgb(${PLAN_ACCENT}), rgba(${PLAN_ACCENT},0.7))`,
+                  border: `1px solid rgb(${PLAN_ACCENT})`,
+                  borderRadius: 'var(--r-md)', color: 'white',
+                  fontSize: 13, fontWeight: '700', cursor: 'pointer',
+                }}
+              >
+                Load Route
               </button>
             </div>
           </div>

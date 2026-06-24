@@ -1,11 +1,24 @@
 # TODO
 
-## Altar of Rites — next session
+## Altar of Rites — deferred until later in the project
 
-- **Recolor Potion Powers + final/Primal node.** Currently gold (Potions) and magenta (final bonus). Move both toward a Reaper of Souls–style steel blue instead — away from gold/pink.
-- **Collapse already-claimed entries in the Seal cost ladder.** Right now all 26 rungs always render; once you're well into the season the claimed ones (struck-through) just push the unclaimed ones further down, forcing a scroll to find the next target. Explore hiding/collapsing spent rungs so the list stays short.
-- **Fix Potion Power costs.** They're currently fixed per-node (Mother=55, Mortal=110, Father=165 Primordial Ashes), but should work like the Seal ladder: cost is keyed by *which Potion-unlock-number this is* (1st/2nd/3rd), not by which specific Potion you pick — same mechanic as `altarSealCostSequence`, just its own separate 3-step Ashes pool. Visual treatment should differ from the Seal ladder though: 3 icons, grayed out initially, filling in / changing color as each is claimed, rather than a list.
+- **Early-farming material lookahead.** Cross-reference the Seal cost ladder
+  so a player can see which materials upcoming (not-yet-reached) unlocks
+  will need — e.g. "unlock #18 needs 4 Tome of Set Dungeon Pages" — so they
+  can start farming those specific materials ahead of actually needing them,
+  rather than discovering the requirement only once they get there. This
+  depends on the broader app-wide planner concept Spencer wants to build
+  eventually, not just this screen, so it's explicitly on hold until that
+  groundwork exists.
 
-## Altar of Rites — planner feature (after the above)
+## Done (kept for history)
 
-A real planner for this screen: let the player map out a target path of nodes ahead of time (which Seals/Potions they want, in what order), validated against the actual prerequisite graph so the path is achievable in-game, surfacing what to claim next. This is meant to feed into a broader app-wide planner concept eventually, not just this screen.
+- Recolor Potion Powers + final/Primal node — landed on Diablo's own
+  item-rarity colors (Set green / Magic blue) rather than steel blue, to stay
+  clearly distinct from Seals.
+- Collapse already-claimed entries in the Seal cost ladder — shipped.
+- Fix Potion Power costs to follow the same sequential-unlock model as
+  Seals, with its own icon-based display — shipped.
+- Planner feature (plan a path ahead of time, cascade-aware removal,
+  per-type next-highlight in the normal view) — shipped.
+- Final/Primal bonus made fully automatic, not clickable — shipped.

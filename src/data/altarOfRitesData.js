@@ -103,4 +103,18 @@ export const altarPotionCostSequence = [
   '165 Primordial Ashes',
 ];
 
+// Curated suggested routes — each a full, valid unlock order (all 26 Seals + 3
+// Potions, every node placed after at least one of its actual requires) that
+// front-loads a particular theme instead of leaving order to chance. Loaded
+// into altarPlan wholesale via the planner's route picker; once loaded they're
+// just a normal plan, editable the same way as anything built by hand.
+export const altarMatHuntingRoute = [
+  0, 1, 3, 7, 9, 14, 18, 23, 27, 8, 12, 17, 20, 21, 26, 19, 25, 24, 28,
+  2, 4, 5, 6, 10, 11, 13, 15, 16, 22,
+];
+export const altarDamagePushingRoute = [
+  0, 1, 3, 7, 8, 11, 10, 16, 9, 13, 17, 21, 26, 18, 22, 27, 19, 24, 28,
+  2, 4, 5, 6, 14, 12, 15, 20, 23, 25,
+];
+
 export default altarOfRitesData;
