@@ -19,7 +19,10 @@ export const reduxSlice = createSlice({
       restQueue:       [],
       history:         [],
       startDate:       null,
-      lastClaimDate:   null, // real-world ISO date (not the virtual history date) of the last Paragon goal claim
+      // Real-world claim count for today (not the virtual history date) — lets Home
+      // tell a normal daily claim apart from a same-day bonus claim, and lets undo
+      // decrement it back down correctly instead of just clearing a single boolean.
+      claimsToday:     { date: null, count: 0 },
       width:  typeof window !== 'undefined' ? window.innerWidth  : 480,
       height: typeof window !== 'undefined' ? window.innerHeight : 800,
       journeyProgress: seasonJourneyData,
@@ -95,8 +98,8 @@ export const reduxSlice = createSlice({
     getNewStartDate: (state, action) => {
       state.value = { ...state.value, startDate: action.payload };
     },
-    getLastClaimDate: (state, action) => {
-      state.value = { ...state.value, lastClaimDate: action.payload };
+    getClaimsToday: (state, action) => {
+      state.value = { ...state.value, claimsToday: action.payload };
     },
   },
 });
@@ -120,7 +123,7 @@ export const {
   getAltarProgress,
   getAltarPlan,
   getAltarSavedPlans,
-  getLastClaimDate,
+  getClaimsToday,
 } = reduxSlice.actions;
 
 export const setDims = () => (dispatch) => {
@@ -143,7 +146,7 @@ const saveData = (currentState) => {
       restQueue:       currentState.restQueue,
       history:         currentState.history,
       startDate:       currentState.startDate,
-      lastClaimDate:   currentState.lastClaimDate,
+      claimsToday:     currentState.claimsToday,
       journeyProgress: currentState.journeyProgress,
       currentChapter:  currentState.currentChapter,
       altarProgress:   currentState.altarProgress,
@@ -205,9 +208,9 @@ export const setNewStartDate = (val, currentState) => (dispatch) => {
   saveData({ ...currentState, startDate: val });
   dispatch(getNewStartDate(val));
 };
-export const setLastClaimDate = (val, currentState) => (dispatch) => {
-  saveData({ ...currentState, lastClaimDate: val });
-  dispatch(getLastClaimDate(val));
+export const setClaimsToday = (val, currentState) => (dispatch) => {
+  saveData({ ...currentState, claimsToday: val });
+  dispatch(getClaimsToday(val));
 };
 export const setJourneyProgress = ({ val, currentState }) => (dispatch) => {
   const newVal = currentState.journeyProgress.map((d) =>

@@ -1,15 +1,17 @@
 import { useState, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { DateTime } from 'luxon';
-import { FaList, FaFire, FaCheck, FaEye, FaEyeSlash, FaGift } from 'react-icons/fa';
+import { FaList, FaFire, FaCheck, FaEye, FaEyeSlash, FaGift, FaUndo } from 'react-icons/fa';
 import {
   selectReduxSlice,
   setJourneyProgress,
   setAltarProgress,
+  setAltarCascade,
   setTrackerData,
-  setLastClaimDate,
+  setClaimsToday,
 } from '../store/store';
 import { altarSealCostSequence, altarPotionCostSequence } from '../data/altarOfRitesData';
+import { computeCascadeLocks } from '../utils/altarCascade';
 
 const parseDate = (str) => {
   const year = new Date().getFullYear();
@@ -62,6 +64,21 @@ const SectionHeader = ({ Icon, title, right }) => (
   </div>
 );
 
+const UndoLink = ({ label, onClick }) => (
+  <button
+    onClick={onClick}
+    style={{
+      alignSelf: 'flex-start',
+      display: 'flex', alignItems: 'center', gap: 6,
+      fontSize: 11, color: 'var(--text-muted)',
+      background: 'none', border: 'none', cursor: 'pointer', padding: '4px 2px',
+    }}
+  >
+    <FaUndo size={10} />
+    {label}
+  </button>
+);
+
 const Welcome = () => {
   const TodayLong = DateTime.now().toLocaleString({ weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
 
@@ -71,7 +88,7 @@ const Welcome = () => {
   reduxStateRef.current = reduxState;
 
   const [showCompletedJourney, setShowCompletedJourney] = useState(false);
-  const [justClaimedBonus, setJustClaimedBonus] = useState(false);
+  const [altarUndoWarning, setAltarUndoWarning] = useState(null); // { node, affectedIds } | null
 
   // ---- Season Journey: full current-chapter task list ----
   const chapterTasks = reduxState.journeyProgress.filter((t) => t.chapter === reduxState.currentChapter);
@@ -95,29 +112,76 @@ const Welcome = () => {
   const nextSealNode = planSealId !== undefined ? byId[planSealId] : null;
   const nextPotionNode = planPotionId !== undefined ? byId[planPotionId] : null;
 
+  // The most recently completed step of the plan, in plan order — there's no
+  // unlock timestamp stored, so "previous" means "last plan-ordered node that's
+  // actually unlocked," same idea as "next" means "first one that isn't yet."
+  const unlockedPlanSealIds = reduxState.altarPlan.filter((id) => byId[id]?.type === 'seal' && byId[id]?.unlocked);
+  const unlockedPlanPotionIds = reduxState.altarPlan.filter((id) => byId[id]?.type === 'potion' && byId[id]?.unlocked);
+  const prevSealNode = unlockedPlanSealIds.length > 0 ? byId[unlockedPlanSealIds[unlockedPlanSealIds.length - 1]] : null;
+  const prevPotionNode = unlockedPlanPotionIds.length > 0 ? byId[unlockedPlanPotionIds[unlockedPlanPotionIds.length - 1]] : null;
+
   const unlockAltarNode = (node) => {
     if (!node) return;
     dispatch(setAltarProgress({ val: node, currentState: reduxStateRef.current }));
   };
 
+  // Re-locking can strand other nodes that were only unlocked through this one
+  // (same risk as locking from the Altar screen itself) — hold off and confirm
+  // instead of silently wiping out other progress if that would happen.
+  const requestUndoAltarNode = (node) => {
+    if (!node) return;
+    const affectedIds = computeCascadeLocks(node.id, reduxState.altarProgress);
+    if (affectedIds.length > 0) {
+      setAltarUndoWarning({ node, affectedIds });
+      return;
+    }
+    dispatch(setAltarProgress({ val: node, currentState: reduxStateRef.current }));
+  };
+  const confirmUndoAltarNode = () => {
+    dispatch(setAltarCascade([altarUndoWarning.node.id, ...altarUndoWarning.affectedIds], reduxStateRef.current));
+    setAltarUndoWarning(null);
+  };
+
   // ---- Paragon: next goal, click-to-claim, same-day bonus marking ----
   const todaysGoal = reduxState.playQueue?.[0];
   const todayISO = DateTime.now().toISODate();
-  const claimedToday = reduxState.lastClaimDate === todayISO;
+  const claimsToday = reduxState.claimsToday;
+  const claimedToday = claimsToday.date === todayISO && claimsToday.count > 0;
+  const bonusToday = claimsToday.date === todayISO && claimsToday.count > 1;
 
   const claimParagonGoal = () => {
     const state = reduxStateRef.current;
     const nextDate = getNextClaimDate(state.history, state.startDate);
     if (!nextDate || state.playQueue.length === 0) return;
     const item = state.playQueue[0];
-    const wasAlreadyClaimedToday = state.lastClaimDate === todayISO;
     dispatch(setTrackerData({
       playQueue: state.playQueue.slice(1),
       restQueue: state.restQueue,
       history: [...state.history, { type: 'play', date: nextDate, level: item.level, difference: item.difference }],
     }, state));
-    dispatch(setLastClaimDate(todayISO, state));
-    setJustClaimedBonus(wasAlreadyClaimedToday);
+    const newCount = state.claimsToday.date === todayISO ? state.claimsToday.count + 1 : 1;
+    dispatch(setClaimsToday({ date: todayISO, count: newCount }, state));
+  };
+
+  // Unwinds the single most recent history entry back onto its queue — same
+  // approach as ParagonTracker's deleteEntry, just always targeting the tail.
+  // Only decrements today's claim count if that entry was actually claimed
+  // today; an entry from a previous day leaves today's count alone.
+  const undoLastClaim = () => {
+    const state = reduxStateRef.current;
+    if (state.history.length === 0) return;
+    const last = state.history[state.history.length - 1];
+    const newHistory = state.history.slice(0, -1);
+    const playQueue = last.type === 'play'
+      ? [{ level: last.level, difference: last.difference, goal: 0 }, ...state.playQueue]
+      : state.playQueue;
+    const restQueue = last.type === 'rest'
+      ? [{ key: 0 }, ...state.restQueue]
+      : state.restQueue;
+    dispatch(setTrackerData({ playQueue, restQueue, history: newHistory }, state));
+    if (state.claimsToday.date === todayISO && state.claimsToday.count > 0) {
+      dispatch(setClaimsToday({ date: todayISO, count: state.claimsToday.count - 1 }, state));
+    }
   };
 
   return (
@@ -131,6 +195,7 @@ const Welcome = () => {
         alignItems: 'center',
         backgroundColor: 'var(--bg-base)',
         paddingBottom: 24,
+        position: 'relative',
       }}
     >
       {/* Date header */}
@@ -169,16 +234,16 @@ const Welcome = () => {
                 alignItems: 'center',
                 gap: 10,
                 padding: '12px 16px',
-                backgroundColor: claimedToday && justClaimedBonus ? 'rgba(255,215,0,0.08)' : 'var(--bg-surface)',
+                backgroundColor: claimedToday && bonusToday ? 'rgba(255,215,0,0.08)' : 'var(--bg-surface)',
                 border: '1px solid',
-                borderColor: claimedToday && justClaimedBonus ? 'rgba(255,215,0,0.4)' : 'var(--border-subtle)',
+                borderColor: claimedToday && bonusToday ? 'rgba(255,215,0,0.4)' : 'var(--border-subtle)',
                 borderLeft: '3px solid',
-                borderLeftColor: claimedToday && justClaimedBonus ? 'gold' : 'var(--red-dim)',
+                borderLeftColor: claimedToday && bonusToday ? 'gold' : 'var(--red-dim)',
                 borderRadius: 'var(--r-md)',
                 cursor: 'pointer',
               }}
             >
-              {claimedToday && justClaimedBonus ? (
+              {claimedToday && bonusToday ? (
                 <FaGift size={14} style={{ color: 'gold', flexShrink: 0 }} />
               ) : (
                 <FaCheck size={14} style={{ color: claimedToday ? 'var(--gold-bright)' : 'var(--red-bright)', flexShrink: 0 }} />
@@ -186,7 +251,7 @@ const Welcome = () => {
               <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left', gap: 2 }}>
                 <span style={{ fontSize: 13, fontWeight: '700', color: 'var(--text)' }}>
                   {claimedToday
-                    ? (justClaimedBonus ? 'Bonus goal claimed — ahead of pace!' : "Today's goal complete!")
+                    ? (bonusToday ? 'Bonus goal claimed — ahead of pace!' : "Today's goal complete!")
                     : `Claim Paragon ${todaysGoal.level} (+${todaysGoal.difference})`}
                 </span>
                 <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
@@ -196,6 +261,10 @@ const Welcome = () => {
                 </span>
               </div>
             </button>
+          )}
+
+          {reduxState.history.length > 0 && (
+            <UndoLink label="Undo last claim" onClick={undoLastClaim} />
           )}
         </section>
 
@@ -311,6 +380,9 @@ const Welcome = () => {
                 </span>
               )}
             </button>
+            {prevSealNode && (
+              <UndoLink label={`Undo ${prevSealNode.name}`} onClick={() => requestUndoAltarNode(prevSealNode)} />
+            )}
 
             {/* Next Potion */}
             <button
@@ -349,10 +421,82 @@ const Welcome = () => {
                 </span>
               )}
             </button>
+            {prevPotionNode && (
+              <UndoLink label={`Undo ${prevPotionNode.name}`} onClick={() => requestUndoAltarNode(prevPotionNode)} />
+            )}
           </div>
         </section>
 
       </div>
+
+      {/* Cascade warning — shown instead of re-locking immediately whenever it
+          would strand other nodes that depended on this one. */}
+      {altarUndoWarning && (
+        <div
+          onClick={() => setAltarUndoWarning(null)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 10,
+            backgroundColor: 'rgba(0,0,0,0.85)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: 24,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: '100%', maxWidth: 380,
+              backgroundColor: '#161618',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--r-lg)',
+              padding: '20px 20px 16px',
+              display: 'flex', flexDirection: 'column', gap: 12,
+            }}
+          >
+            <span style={{ fontSize: 15, fontWeight: '700', color: 'var(--text)' }}>
+              This will also lock {altarUndoWarning.affectedIds.length} other node{altarUndoWarning.affectedIds.length === 1 ? '' : 's'}
+            </span>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+              These were only unlocked through {altarUndoWarning.node.name}, directly or further down the chain — none of them have another open path left:
+            </p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {altarUndoWarning.affectedIds.map((id) => (
+                <span key={id} style={{
+                  fontSize: 12, fontWeight: '600', color: 'var(--text-dim)',
+                  backgroundColor: 'var(--bg-raised)', border: '1px solid var(--border-subtle)',
+                  borderRadius: 'var(--r-sm)', padding: '3px 8px',
+                }}>
+                  {byId[id]?.name}
+                </span>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
+              <button
+                onClick={() => setAltarUndoWarning(null)}
+                style={{
+                  flex: 1, height: 42,
+                  backgroundColor: 'var(--bg-raised)', border: '1px solid var(--border-subtle)',
+                  borderRadius: 'var(--r-md)', color: 'var(--text-dim)',
+                  fontSize: 13, fontWeight: '700', cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmUndoAltarNode}
+                style={{
+                  flex: 1, height: 42,
+                  background: 'linear-gradient(to right, var(--red), #8b0000)',
+                  border: '1px solid var(--red-dim)',
+                  borderRadius: 'var(--r-md)', color: 'white',
+                  fontSize: 13, fontWeight: '700', cursor: 'pointer',
+                }}
+              >
+                Lock Them All
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
