@@ -19,6 +19,7 @@ export const reduxSlice = createSlice({
       restQueue:       [],
       history:         [],
       startDate:       null,
+      lastClaimDate:   null, // real-world ISO date (not the virtual history date) of the last Paragon goal claim
       width:  typeof window !== 'undefined' ? window.innerWidth  : 480,
       height: typeof window !== 'undefined' ? window.innerHeight : 800,
       journeyProgress: seasonJourneyData,
@@ -94,6 +95,9 @@ export const reduxSlice = createSlice({
     getNewStartDate: (state, action) => {
       state.value = { ...state.value, startDate: action.payload };
     },
+    getLastClaimDate: (state, action) => {
+      state.value = { ...state.value, lastClaimDate: action.payload };
+    },
   },
 });
 
@@ -116,6 +120,7 @@ export const {
   getAltarProgress,
   getAltarPlan,
   getAltarSavedPlans,
+  getLastClaimDate,
 } = reduxSlice.actions;
 
 export const setDims = () => (dispatch) => {
@@ -138,6 +143,7 @@ const saveData = (currentState) => {
       restQueue:       currentState.restQueue,
       history:         currentState.history,
       startDate:       currentState.startDate,
+      lastClaimDate:   currentState.lastClaimDate,
       journeyProgress: currentState.journeyProgress,
       currentChapter:  currentState.currentChapter,
       altarProgress:   currentState.altarProgress,
@@ -198,6 +204,10 @@ export const setTrackerData = (val, currentState) => (dispatch) => {
 export const setNewStartDate = (val, currentState) => (dispatch) => {
   saveData({ ...currentState, startDate: val });
   dispatch(getNewStartDate(val));
+};
+export const setLastClaimDate = (val, currentState) => (dispatch) => {
+  saveData({ ...currentState, lastClaimDate: val });
+  dispatch(getLastClaimDate(val));
 };
 export const setJourneyProgress = ({ val, currentState }) => (dispatch) => {
   const newVal = currentState.journeyProgress.map((d) =>
