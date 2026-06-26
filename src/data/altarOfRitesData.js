@@ -109,12 +109,112 @@ export const altarPotionCostSequence = [
 // into altarPlan wholesale via the planner's route picker; once loaded they're
 // just a normal plan, editable the same way as anything built by hand.
 export const altarMatHuntingRoute = [
-  0, 1, 3, 7, 9, 14, 18, 23, 27, 8, 12, 17, 20, 21, 26, 19, 25, 24, 28,
-  2, 4, 5, 6, 10, 11, 13, 15, 16, 22,
+  // Gateway -> Anointed (overgear for leveling speed) -> Mirror (permanent XP
+  // Pools — free relative to Exodus since unlock cost is per-slot, not
+  // per-node, and the payoff is season-long, not just leveling-window) ->
+  // Exodus (movespeed beats flat +100 dmg once Anointed makes a level-70
+  // weapon's damage dwarf any flat bonus) -> Blood (the next bottleneck).
+  0, 2, 1, 5, 7,
+  // Stillness (DBs x2) before Bountiful (Bounty Caches x2) — Death's Breaths
+  // come from far more sources than Bounty Materials, and the Altar's own
+  // ladder needs far more of them (10, 20, then 500 at rung 21) than it needs
+  // Bounty Materials. Stillness also reaches Malice -> Carrion/Reaper -> Omen
+  // directly, without needing the Bountiful branch at all to get there.
+  8, 12, 17, 20, 21, 18, 23,
+  // Passability -> Kadala Leggies next, which clears Father's gate.
+  19, 25,
+  // Potions held back deliberately — Primordial Ashes don't exist until you
+  // can clear a GR70 (well past this point), so there's no real-time pressure
+  // to grab each one the instant its seal gate opens. All three gates
+  // (Carrion/Reaper, Husk, Pattern) are already clear here, so they're taken
+  // in actual preference order instead: Father first, Mortal second, Mother
+  // third — same logic as ordering the Seals themselves by value, not by
+  // whichever gate happens to open first.
+  28, 27, 26,
+  // Back for Bounties x2, then Auto-Orbs, then Resource on Crit.
+  9, 14, 10, 15, 13,
+  4, 6, 3, 11, 16, 22, 24,
 ];
 export const altarDamagePushingRoute = [
-  0, 1, 3, 7, 8, 11, 10, 16, 9, 13, 17, 21, 26, 18, 22, 27, 19, 24, 28,
-  2, 4, 5, 6, 14, 12, 15, 20, 23, 25,
+  // Same 1-70 opener as Mat Hunting — the reasoning behind it (overgear for
+  // leveling speed, permanent XP Pools paying off season-long) never actually
+  // depended on the farming theme, so it transfers as-is.
+  0, 2, 1, 5, 7,
+  // Prowess -> Reach (Auto-Orbs, GR speed) -> Revelation -> Omen (CC immunity).
+  10, 15, 19, 18,
+  // Malice (+5% Dmg, "straight damage") -> Command (+5% Elite Dmg) -> Roar
+  // (+5% Boss Dmg) — rotated into this order specifically: straight damage
+  // first, elite damage second, boss damage last, since boss damage is the
+  // least broadly useful of the three (only matters at the very end of a
+  // Rift) and straight damage the most. Roar still opens Mortal, taken
+  // immediately as the FIRST potion since its damage-reduction aura is
+  // unconditionally reliable in a GR push, unlike Mother (positional,
+  // build-dependent) or Father (a random shrine roll that might not even be
+  // combat-relevant).
+  17, 6, 22, 27,
+  // Reaper (+1 Progress Orb), then back to the left/center columns under
+  // Blood: Numb -> Tenacity. Reverence (-5% Elite Dmg Taken) slotted in right
+  // before Nature — paired conceptually with Command (elite offense earlier,
+  // elite defense here) without needing to sit immediately adjacent to it,
+  // since surviving elite packs matters just as much as damaging them for how
+  // high you can actually push. Then Nature -> Vigor as before.
+  21, 8, 11, 16, 9, 13,
+  // Top section, Command and Reverence now removed: Shadow, Elegance.
+  4, 24,
+  // Backfill the farming-utility nodes — not combat-relevant for pushing, so
+  // they go ahead of Force regardless of how early their gates opened. Unlike
+  // Force, they don't depend on bounty-running specifically to matter.
+  23, 20, 25, 12,
+  // Force last among these — at push-relevant gear levels +100 flat damage is
+  // a rounding error, weaker than any of the above. Bountiful goes dead last
+  // overall: a pushing player spends virtually no time on bounties (it's all
+  // rifts/GRs), so its Bounty Cache doubling rarely even triggers — even
+  // Force's negligible-but-guaranteed bonus beats an effect that mostly never
+  // fires for this playstyle.
+  3, 14,
+  // Mother (Triune Circles) second, Father (random shrine) third — inverse of
+  // the Mat Hunting potion order, since pushing punishes unreliability in a
+  // way farming doesn't.
+  26, 28,
+];
+
+// A third route: close both material bottlenecks as early as physically
+// possible, then weave QoL picks through the combat section instead of
+// clustering them all at the end — not "fix bottlenecks, then go straight
+// into a damage block."
+export const altarBalancedRoute = [
+  // Same universal 1-70 opener as the other two routes.
+  0, 2, 1, 5, 7,
+  // Nature -> Bountiful (Bounty Caches x2), then Numb -> Stillness (DBs x2) —
+  // the earliest either can possibly land, since both need Blood first.
+  // Bountiful goes first: independently-found community guidance (Maxroll)
+  // treats it as the #2 overall priority right after Anointed, and the two
+  // are otherwise interchangeable here. Both still catch BOTH of their
+  // relevant cost rungs (Bounty Materials at 11 and 20; DBs at 10 and the
+  // brutal 500 at 21), only missing the one rung each that's structurally
+  // unreachable by any route (rung 5 and rung 3, respectively — those come
+  // before Blood's own branch can resolve).
+  9, 14, 8, 12,
+  // Malice -> Tenacity (both "+5% Dmg", paired together) -> Prowess (combat)
+  // -> Reach (QoL: Auto Orbs) — first QoL pick, woven in rather than held
+  // until everything combat-relevant is done.
+  17, 11, 10, 15,
+  // Command, Reverence (combat: elite offense + elite defense) -> Omen
+  // (CC immunity — survival, not raw QoL, but it gates the next QoL pair).
+  6, 16, 18,
+  // Carrion (QoL: Auto-DBs), Reaper (QoL: +1 Progress Orb) — second QoL pair.
+  20, 21,
+  // Roar (combat) opens Mortal, taken immediately as the first potion for
+  // the same reliability-over-randomness reasoning as Damage & Pushing.
+  22, 27,
+  // Husk (QoL: Auto-salvage) -> Revelation (QoL: Passability) — third pair.
+  23, 19,
+  // Pattern (farming-yield) and Elegance (combat-defense), then Mother and
+  // Father potions once their gates (Carrion/Reaper, Elegance/Pattern) clear.
+  25, 24, 26, 28,
+  // Pure backfill — same logic as both other routes: these don't move the
+  // needle on combat, farming yield, or QoL.
+  13, 4, 3,
 ];
 
 export default altarOfRitesData;

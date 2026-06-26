@@ -1,12 +1,13 @@
 import { useState, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { FaChevronDown, FaChevronRight, FaFlask } from 'react-icons/fa';
-import { selectReduxSlice, setAltarProgress, setAltarCascade, setAltarPlan } from '../store/store';
-import { altarSealCostSequence, altarPotionCostSequence, altarMatHuntingRoute, altarDamagePushingRoute } from '../data/altarOfRitesData';
+import { FaChevronDown, FaChevronRight, FaFlask, FaSave, FaTrash, FaTimes } from 'react-icons/fa';
+import { selectReduxSlice, setAltarProgress, setAltarCascade, setAltarPlan, setAltarSavedPlans } from '../store/store';
+import { altarSealCostSequence, altarPotionCostSequence, altarMatHuntingRoute, altarDamagePushingRoute, altarBalancedRoute } from '../data/altarOfRitesData';
 
 const SUGGESTED_ROUTES = [
   { key: 'matHunting', label: 'Mat Hunting', route: altarMatHuntingRoute },
   { key: 'damagePushing', label: 'Damage & Pushing', route: altarDamagePushingRoute },
+  { key: 'balanced', label: 'Balanced', route: altarBalancedRoute },
 ];
 
 // Seals stay the app's red. Potions and the final bonus use Diablo's own
@@ -128,9 +129,11 @@ const AlterOfRites = () => {
   const [showSpentCosts, setShowSpentCosts] = useState(false);
   const [planningMode, setPlanningMode] = useState(false);
   const [routeToLoad, setRouteToLoad] = useState(null); // { key, label, route } | null
+  const [savePlanPrompt, setSavePlanPrompt] = useState(false);
+  const [newPlanName, setNewPlanName] = useState('');
   reduxStateRef.current = reduxState;
 
-  const { altarPlan } = reduxState;
+  const { altarPlan, altarSavedPlans } = reduxState;
   // The final bonus isn't something you ever toggle yourself — in-game it just
   // happens once everything else is done. Its "unlocked" is fully derived here
   // rather than read from stored state, so there's no real toggle to click and
@@ -218,6 +221,28 @@ const AlterOfRites = () => {
   const confirmLoadRoute = () => {
     dispatch(setAltarPlan(routeToLoad.route, reduxStateRef.current));
     setRouteToLoad(null);
+  };
+
+  // Saving overwrites any existing entry with the same name — same "Save As"
+  // convention most apps use, rather than a separate confirm step.
+  const confirmSavePlan = () => {
+    const name = newPlanName.trim();
+    if (!name) return;
+    const withoutExisting = altarSavedPlans.filter((p) => p.name !== name);
+    dispatch(setAltarSavedPlans([...withoutExisting, { name, plan: altarPlan }], reduxStateRef.current));
+    setSavePlanPrompt(false);
+    setNewPlanName('');
+  };
+  const deleteSavedPlan = (name) => {
+    dispatch(setAltarSavedPlans(altarSavedPlans.filter((p) => p.name !== name), reduxStateRef.current));
+  };
+
+  // The dedicated Clear control — same overwrite-confirm mechanism as loading
+  // any other route, just loading an empty one. Replaces "click the root node
+  // to cascade everything away," which worked but was never the intended way
+  // to reset the board.
+  const handleClearPlan = () => {
+    requestLoadRoute({ key: 'clear', label: 'an empty plan', route: [] });
   };
 
   // Same breakpoint the app already uses to switch from BottomNav to Sidebar.
@@ -381,6 +406,85 @@ const AlterOfRites = () => {
             ))}
           </div>
         )}
+
+        {planningMode && (
+          <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+            <button
+              onClick={() => setSavePlanPrompt(true)}
+              disabled={altarPlan.length === 0}
+              style={{
+                height: 28, padding: '0 10px',
+                display: 'flex', alignItems: 'center', gap: 6,
+                backgroundColor: 'var(--bg-raised)', border: '1px solid var(--border-subtle)',
+                borderRadius: 'var(--r-sm)',
+                color: altarPlan.length === 0 ? 'var(--text-muted)' : 'var(--text-dim)',
+                fontSize: 11, fontWeight: '700',
+                cursor: altarPlan.length === 0 ? 'not-allowed' : 'pointer',
+                opacity: altarPlan.length === 0 ? 0.5 : 1,
+              }}
+            >
+              <FaSave size={10} /> Save Plan
+            </button>
+            <button
+              onClick={handleClearPlan}
+              disabled={altarPlan.length === 0}
+              style={{
+                height: 28, padding: '0 10px',
+                display: 'flex', alignItems: 'center', gap: 6,
+                backgroundColor: 'var(--bg-raised)', border: '1px solid var(--border-subtle)',
+                borderRadius: 'var(--r-sm)',
+                color: altarPlan.length === 0 ? 'var(--text-muted)' : 'var(--text-dim)',
+                fontSize: 11, fontWeight: '700',
+                cursor: altarPlan.length === 0 ? 'not-allowed' : 'pointer',
+                opacity: altarPlan.length === 0 ? 0.5 : 1,
+              }}
+            >
+              <FaTimes size={10} /> Clear
+            </button>
+          </div>
+        )}
+
+        {planningMode && altarSavedPlans.length > 0 && (
+          <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+            <span style={{ fontSize: 11, color: 'var(--text-muted)', alignSelf: 'center' }}>
+              Your saved plans:
+            </span>
+            {altarSavedPlans.map((saved) => (
+              <div
+                key={saved.name}
+                style={{
+                  height: 28, display: 'flex', alignItems: 'center',
+                  backgroundColor: 'var(--bg-raised)', border: '1px solid var(--border-subtle)',
+                  borderRadius: 'var(--r-sm)', overflow: 'hidden',
+                }}
+              >
+                <button
+                  onClick={() => requestLoadRoute({ key: saved.name, label: saved.name, route: saved.plan })}
+                  style={{
+                    height: '100%', padding: '0 10px',
+                    background: 'none', border: 'none',
+                    color: 'var(--text-dim)', fontSize: 11, fontWeight: '700', cursor: 'pointer',
+                  }}
+                >
+                  {saved.name}
+                </button>
+                <button
+                  onClick={() => deleteSavedPlan(saved.name)}
+                  title={`Delete "${saved.name}"`}
+                  style={{
+                    height: '100%', padding: '0 8px',
+                    background: 'none', border: 'none', borderLeft: '1px solid var(--border-subtle)',
+                    color: 'var(--text-muted)', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center',
+                  }}
+                >
+                  <FaTrash size={9} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 12 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: 11, color: 'var(--text-muted)', letterSpacing: '0.06em' }}>
@@ -564,11 +668,14 @@ const AlterOfRites = () => {
                       }
                     : { textShadow: '0 0 4px var(--bg-base), 0 0 4px var(--bg-base)' }),
                 }}>
-                  {hovered
-                    ? node.type === 'final'
-                      ? `${node.effect}\n\n${node.cost.join(', ')}`
-                      : node.effect
-                    : node.description}
+                  {hovered ? (
+                    <>
+                      <span style={{ display: 'block', fontWeight: '700', marginBottom: 4 }}>
+                        {node.name}
+                      </span>
+                      {node.type === 'final' ? `${node.effect}\n\n${node.cost.join(', ')}` : node.effect}
+                    </>
+                  ) : node.description}
                 </span>
               </button>
             );
@@ -651,6 +758,82 @@ const AlterOfRites = () => {
         </div>
       )}
 
+      {/* Save-plan name prompt */}
+      {savePlanPrompt && (
+        <div
+          onClick={() => setSavePlanPrompt(false)}
+          style={{
+            position: 'absolute', inset: 0, zIndex: 10,
+            backgroundColor: 'rgba(0,0,0,0.85)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: 24,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: '100%', maxWidth: 380,
+              backgroundColor: '#161618',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--r-lg)',
+              padding: '20px 20px 16px',
+              display: 'flex', flexDirection: 'column', gap: 12,
+            }}
+          >
+            <span style={{ fontSize: 15, fontWeight: '700', color: 'var(--text)' }}>
+              Save this plan
+            </span>
+            <input
+              autoFocus
+              type="text"
+              value={newPlanName}
+              onChange={(e) => setNewPlanName(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') confirmSavePlan(); }}
+              placeholder="Name this plan..."
+              style={{
+                height: 40, padding: '0 12px',
+                backgroundColor: 'var(--bg-base)', border: '1px solid var(--border-subtle)',
+                borderRadius: 'var(--r-md)', color: 'var(--text)', fontSize: 14,
+                outline: 'none',
+              }}
+            />
+            {altarSavedPlans.some((p) => p.name === newPlanName.trim()) && newPlanName.trim() && (
+              <span style={{ fontSize: 11, color: 'var(--gold-bright)' }}>
+                A saved plan with this name already exists — saving will overwrite it.
+              </span>
+            )}
+            <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
+              <button
+                onClick={() => { setSavePlanPrompt(false); setNewPlanName(''); }}
+                style={{
+                  flex: 1, height: 42,
+                  backgroundColor: 'var(--bg-raised)', border: '1px solid var(--border-subtle)',
+                  borderRadius: 'var(--r-md)', color: 'var(--text-dim)',
+                  fontSize: 13, fontWeight: '700', cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmSavePlan}
+                disabled={!newPlanName.trim()}
+                style={{
+                  flex: 1, height: 42,
+                  background: newPlanName.trim() ? `linear-gradient(to right, rgb(${PLAN_ACCENT}), rgba(${PLAN_ACCENT},0.7))` : 'var(--bg-raised)',
+                  border: `1px solid ${newPlanName.trim() ? `rgb(${PLAN_ACCENT})` : 'var(--border-subtle)'}`,
+                  borderRadius: 'var(--r-md)',
+                  color: newPlanName.trim() ? 'white' : 'var(--text-muted)',
+                  fontSize: 13, fontWeight: '700',
+                  cursor: newPlanName.trim() ? 'pointer' : 'not-allowed',
+                }}
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Route-load overwrite warning — only shown when there's an existing
           plan to actually lose; an empty plan loads the route immediately. */}
       {routeToLoad && (
@@ -675,10 +858,12 @@ const AlterOfRites = () => {
             }}
           >
             <span style={{ fontSize: 15, fontWeight: '700', color: 'var(--text)' }}>
-              Replace your current plan?
+              {routeToLoad.key === 'clear' ? 'Clear your plan?' : 'Replace your current plan?'}
             </span>
             <p style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5 }}>
-              Loading the {routeToLoad.label} route will overwrite your existing {altarPlan.length}-node plan. This doesn't touch anything you've actually unlocked.
+              {routeToLoad.key === 'clear'
+                ? `This will remove all ${altarPlan.length} nodes from your current plan. This doesn't touch anything you've actually unlocked.`
+                : `Loading the ${routeToLoad.label} route will overwrite your existing ${altarPlan.length}-node plan. This doesn't touch anything you've actually unlocked.`}
             </p>
             <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
               <button
@@ -702,7 +887,7 @@ const AlterOfRites = () => {
                   fontSize: 13, fontWeight: '700', cursor: 'pointer',
                 }}
               >
-                Load Route
+                {routeToLoad.key === 'clear' ? 'Clear Plan' : 'Load Route'}
               </button>
             </div>
           </div>

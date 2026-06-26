@@ -25,6 +25,7 @@ export const reduxSlice = createSlice({
       currentChapter:  seasonJourneyData[0].chapter,
       altarProgress:   altarOfRitesData,
       altarPlan:       [], // ordered node ids — your intended unlock order, separate from real progress
+      altarSavedPlans: [], // [{ name, plan }] — named snapshots of altarPlan you can reload later
     },
   },
   reducers: {
@@ -42,6 +43,9 @@ export const reduxSlice = createSlice({
     },
     getAltarPlan: (state, action) => {
       state.value = { ...state.value, altarPlan: action.payload };
+    },
+    getAltarSavedPlans: (state, action) => {
+      state.value = { ...state.value, altarSavedPlans: action.payload };
     },
     getSeasonalParagon: (state, action) => {
       state.value = { ...state.value, seasonParagon: action.payload };
@@ -84,7 +88,8 @@ export const reduxSlice = createSlice({
         return savedItem ? { ...d, unlocked: savedItem.unlocked } : d;
       });
       const altarPlan = Array.isArray(action.payload.altarPlan) ? action.payload.altarPlan : [];
-      state.value = { ...state.value, ...action.payload, journeyProgress: journeyData, altarProgress: altarData, altarPlan };
+      const altarSavedPlans = Array.isArray(action.payload.altarSavedPlans) ? action.payload.altarSavedPlans : [];
+      state.value = { ...state.value, ...action.payload, journeyProgress: journeyData, altarProgress: altarData, altarPlan, altarSavedPlans };
     },
     getNewStartDate: (state, action) => {
       state.value = { ...state.value, startDate: action.payload };
@@ -110,6 +115,7 @@ export const {
   getCurrentChapter,
   getAltarProgress,
   getAltarPlan,
+  getAltarSavedPlans,
 } = reduxSlice.actions;
 
 export const setDims = () => (dispatch) => {
@@ -136,6 +142,7 @@ const saveData = (currentState) => {
       currentChapter:  currentState.currentChapter,
       altarProgress:   currentState.altarProgress,
       altarPlan:       currentState.altarPlan,
+      altarSavedPlans: currentState.altarSavedPlans,
     });
     localStorage.setItem('DIABLO_3_COMPANION_SAVE_DATA', jsonValue);
   } catch (e) {
@@ -234,6 +241,14 @@ export const setAltarCascade = (idsToLock, currentState) => (dispatch) => {
 export const setAltarPlan = (newPlan, currentState) => (dispatch) => {
   saveData({ ...currentState, altarPlan: newPlan });
   dispatch(getAltarPlan(newPlan));
+};
+
+// Bulk-replaces the list of named saved plans — used for saving a new one,
+// overwriting an existing name, or deleting one, all computed client-side
+// then dispatched in one shot.
+export const setAltarSavedPlans = (newSavedPlans, currentState) => (dispatch) => {
+  saveData({ ...currentState, altarSavedPlans: newSavedPlans });
+  dispatch(getAltarSavedPlans(newSavedPlans));
 };
 
 export const getSavedData = () => (dispatch) => {
