@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { FaChevronDown, FaChevronRight, FaCheck } from 'react-icons/fa';
-import { selectReduxSlice, setJourneyProgress, setCurrentChapter } from '../store/store';
+import { selectReduxSlice, setJourneyProgress, setJourneyCascade, setCurrentChapter } from '../store/store';
+import { computeJourneyCascadeUncompletes } from '../utils/journeyCascade';
 
 const SeasonJourney = () => {
   const dispatch = useDispatch();
@@ -10,8 +11,27 @@ const SeasonJourney = () => {
   const journeyProgressRef = useRef(reduxState.journeyProgress);
   const [chapters, setChapters] = useState([]);
   const [showChapterSelect, setShowChapterSelect] = useState(false);
+  const [cascadeWarning, setCascadeWarning] = useState(null); // { task, affectedKeys } | null
   reduxStateRef.current = reduxState;
   journeyProgressRef.current = reduxState.journeyProgress;
+
+  // Unchecking a task is safe to do immediately unless something already
+  // completed only stayed that way because of it (e.g. unchecking GR20 Solo
+  // while GR30+ are checked) — same split as the Altar's lock-vs-unlock.
+  const handleTaskClick = (task) => {
+    if (task.completed) {
+      const affected = computeJourneyCascadeUncompletes(task.key, journeyProgressRef.current);
+      if (affected.length > 0) {
+        setCascadeWarning({ task, affectedKeys: affected });
+        return;
+      }
+    }
+    dispatch(setJourneyProgress({ val: task, currentState: reduxStateRef.current }));
+  };
+  const confirmCascade = () => {
+    dispatch(setJourneyCascade([cascadeWarning.task.key, ...cascadeWarning.affectedKeys], reduxStateRef.current));
+    setCascadeWarning(null);
+  };
 
   useEffect(() => {
     const allChapters = [];
@@ -174,7 +194,7 @@ const SeasonJourney = () => {
           return (
             <button
               key={d.key}
-              onClick={() => dispatch(setJourneyProgress({ val: d, currentState: reduxStateRef.current }))}
+              onClick={() => handleTaskClick(d)}
               style={{
                 width: '100%',
                 display: 'flex',
@@ -223,6 +243,75 @@ const SeasonJourney = () => {
           );
         })}
       </div>
+
+      {/* Cascade warning — shown instead of unchecking immediately whenever
+          other already-completed tasks only stayed that way because of this one. */}
+      {cascadeWarning && (
+        <div
+          onClick={() => setCascadeWarning(null)}
+          style={{
+            position: 'absolute', inset: 0, zIndex: 10,
+            backgroundColor: 'rgba(0,0,0,0.85)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: 24,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: '100%', maxWidth: 380,
+              backgroundColor: '#161618',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--r-lg)',
+              padding: '20px 20px 16px',
+              display: 'flex', flexDirection: 'column', gap: 12,
+            }}
+          >
+            <span style={{ fontSize: 15, fontWeight: '700', color: 'var(--text)' }}>
+              This will also uncheck {cascadeWarning.affectedKeys.length} other task{cascadeWarning.affectedKeys.length === 1 ? '' : 's'}
+            </span>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+              These were only complete because {cascadeWarning.task.title} was — none of them could really be done without it:
+            </p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {cascadeWarning.affectedKeys.map((key) => (
+                <span key={key} style={{
+                  fontSize: 12, fontWeight: '600', color: 'var(--text-dim)',
+                  backgroundColor: 'var(--bg-raised)', border: '1px solid var(--border-subtle)',
+                  borderRadius: 'var(--r-sm)', padding: '3px 8px',
+                }}>
+                  {journeyProgressRef.current.find((t) => t.key === key)?.title}
+                </span>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
+              <button
+                onClick={() => setCascadeWarning(null)}
+                style={{
+                  flex: 1, height: 42,
+                  backgroundColor: 'var(--bg-raised)', border: '1px solid var(--border-subtle)',
+                  borderRadius: 'var(--r-md)', color: 'var(--text-dim)',
+                  fontSize: 13, fontWeight: '700', cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmCascade}
+                style={{
+                  flex: 1, height: 42,
+                  background: 'linear-gradient(to right, var(--red), #8b0000)',
+                  border: '1px solid var(--red-dim)',
+                  borderRadius: 'var(--r-md)', color: 'white',
+                  fontSize: 13, fontWeight: '700', cursor: 'pointer',
+                }}
+              >
+                Uncheck Them All
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

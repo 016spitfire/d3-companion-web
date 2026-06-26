@@ -1,6 +1,7 @@
 import { createSlice, configureStore } from '@reduxjs/toolkit';
 import seasonJourneyData from '../data/seasonJourneyData';
 import altarOfRitesData from '../data/altarOfRitesData';
+import { getAncestorsToComplete } from '../utils/journeyCascade';
 
 export const reduxSlice = createSlice({
   name: 'reduxSlice',
@@ -212,9 +213,29 @@ export const setClaimsToday = (val, currentState) => (dispatch) => {
   saveData({ ...currentState, claimsToday: val });
   dispatch(getClaimsToday(val));
 };
+// Checking a task complete also completes everything in its requires chain,
+// transitively (e.g. checking GR50 Solo also checks GR40/30/20) — there's no
+// cascade risk going this direction, so it always happens immediately.
+// Unchecking only ever toggles the single task here; if other completed
+// tasks depend on it, the caller is expected to have already confirmed that
+// cascade and used setJourneyCascade instead, same split as the Altar.
 export const setJourneyProgress = ({ val, currentState }) => (dispatch) => {
+  let newVal;
+  if (!val.completed) {
+    const byKey = Object.fromEntries(currentState.journeyProgress.map((d) => [d.key, d]));
+    const toComplete = getAncestorsToComplete(val.key, byKey);
+    newVal = currentState.journeyProgress.map((d) => (toComplete.has(d.key) ? { ...d, completed: true } : d));
+  } else {
+    newVal = currentState.journeyProgress.map((d) => (val.key === d.key ? { ...d, completed: false } : d));
+  }
+  saveData({ ...currentState, journeyProgress: newVal });
+  dispatch(getSeasonJourneyProgress(newVal));
+};
+// Bulk-unchecks a task plus every dependent that only stayed completed
+// because of it — used after a cascade-uncomplete warning is confirmed.
+export const setJourneyCascade = (keysToUncomplete, currentState) => (dispatch) => {
   const newVal = currentState.journeyProgress.map((d) =>
-    val.key === d.key ? { ...d, completed: !d.completed } : d
+    keysToUncomplete.includes(d.key) ? { ...d, completed: false } : d
   );
   saveData({ ...currentState, journeyProgress: newVal });
   dispatch(getSeasonJourneyProgress(newVal));

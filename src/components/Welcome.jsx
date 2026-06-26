@@ -5,6 +5,7 @@ import { FaList, FaFire, FaCheck, FaEye, FaEyeSlash, FaGift, FaUndo } from 'reac
 import {
   selectReduxSlice,
   setJourneyProgress,
+  setJourneyCascade,
   setAltarProgress,
   setAltarCascade,
   setTrackerData,
@@ -12,6 +13,7 @@ import {
 } from '../store/store';
 import { altarSealCostSequence, altarPotionCostSequence } from '../data/altarOfRitesData';
 import { computeCascadeLocks } from '../utils/altarCascade';
+import { computeJourneyCascadeUncompletes } from '../utils/journeyCascade';
 
 const parseDate = (str) => {
   const year = new Date().getFullYear();
@@ -79,6 +81,73 @@ const UndoLink = ({ label, onClick }) => (
   </button>
 );
 
+// Shared shape for "this action will also affect N other things" confirms —
+// used for both re-locking an Altar node and unchecking a Season Journey
+// task, since both can strand other progress that depended on the one thing
+// being undone.
+const CascadeWarningModal = ({ title, body, chips, onCancel, onConfirm, confirmLabel }) => (
+  <div
+    onClick={onCancel}
+    style={{
+      position: 'fixed', inset: 0, zIndex: 10,
+      backgroundColor: 'rgba(0,0,0,0.85)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      padding: 24,
+    }}
+  >
+    <div
+      onClick={(e) => e.stopPropagation()}
+      style={{
+        width: '100%', maxWidth: 380,
+        backgroundColor: '#161618',
+        border: '1px solid var(--border)',
+        borderRadius: 'var(--r-lg)',
+        padding: '20px 20px 16px',
+        display: 'flex', flexDirection: 'column', gap: 12,
+      }}
+    >
+      <span style={{ fontSize: 15, fontWeight: '700', color: 'var(--text)' }}>{title}</span>
+      <p style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5 }}>{body}</p>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+        {chips.map((chip) => (
+          <span key={chip} style={{
+            fontSize: 12, fontWeight: '600', color: 'var(--text-dim)',
+            backgroundColor: 'var(--bg-raised)', border: '1px solid var(--border-subtle)',
+            borderRadius: 'var(--r-sm)', padding: '3px 8px',
+          }}>
+            {chip}
+          </span>
+        ))}
+      </div>
+      <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
+        <button
+          onClick={onCancel}
+          style={{
+            flex: 1, height: 42,
+            backgroundColor: 'var(--bg-raised)', border: '1px solid var(--border-subtle)',
+            borderRadius: 'var(--r-md)', color: 'var(--text-dim)',
+            fontSize: 13, fontWeight: '700', cursor: 'pointer',
+          }}
+        >
+          Cancel
+        </button>
+        <button
+          onClick={onConfirm}
+          style={{
+            flex: 1, height: 42,
+            background: 'linear-gradient(to right, var(--red), #8b0000)',
+            border: '1px solid var(--red-dim)',
+            borderRadius: 'var(--r-md)', color: 'white',
+            fontSize: 13, fontWeight: '700', cursor: 'pointer',
+          }}
+        >
+          {confirmLabel}
+        </button>
+      </div>
+    </div>
+  </div>
+);
+
 const Welcome = () => {
   const TodayLong = DateTime.now().toLocaleString({ weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
 
@@ -89,14 +158,30 @@ const Welcome = () => {
 
   const [showCompletedJourney, setShowCompletedJourney] = useState(false);
   const [altarUndoWarning, setAltarUndoWarning] = useState(null); // { node, affectedIds } | null
+  const [journeyUndoWarning, setJourneyUndoWarning] = useState(null); // { task, affectedKeys } | null
 
   // ---- Season Journey: full current-chapter task list ----
   const chapterTasks = reduxState.journeyProgress.filter((t) => t.chapter === reduxState.currentChapter);
   const visibleChapterTasks = showCompletedJourney ? chapterTasks : chapterTasks.filter((t) => !t.completed);
   const completedInChapter = chapterTasks.filter((t) => t.completed).length;
 
-  const toggleJourneyTask = (task) => {
+  // Checking a task complete also completes its chain (handled inside the
+  // thunk). Unchecking is safe immediately unless something already
+  // completed only stayed that way because of this one (e.g. unchecking
+  // GR20 Solo while GR30+ are checked) — same split as the Altar undo above.
+  const handleJourneyTaskClick = (task) => {
+    if (task.completed) {
+      const affected = computeJourneyCascadeUncompletes(task.key, reduxState.journeyProgress);
+      if (affected.length > 0) {
+        setJourneyUndoWarning({ task, affectedKeys: affected });
+        return;
+      }
+    }
     dispatch(setJourneyProgress({ val: task, currentState: reduxStateRef.current }));
+  };
+  const confirmJourneyCascade = () => {
+    dispatch(setJourneyCascade([journeyUndoWarning.task.key, ...journeyUndoWarning.affectedKeys], reduxStateRef.current));
+    setJourneyUndoWarning(null);
   };
 
   // ---- Altar of Rites: follow the planned path if one exists ----
@@ -297,7 +382,7 @@ const Welcome = () => {
             {visibleChapterTasks.map((task) => (
               <button
                 key={task.key}
-                onClick={() => toggleJourneyTask(task)}
+                onClick={() => handleJourneyTaskClick(task)}
                 style={{
                   width: '100%',
                   display: 'flex',
@@ -429,73 +514,27 @@ const Welcome = () => {
 
       </div>
 
-      {/* Cascade warning — shown instead of re-locking immediately whenever it
-          would strand other nodes that depended on this one. */}
+      {/* Cascade warnings — shown instead of acting immediately whenever it
+          would strand other progress that depended on the thing being undone. */}
       {altarUndoWarning && (
-        <div
-          onClick={() => setAltarUndoWarning(null)}
-          style={{
-            position: 'fixed', inset: 0, zIndex: 10,
-            backgroundColor: 'rgba(0,0,0,0.85)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            padding: 24,
-          }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              width: '100%', maxWidth: 380,
-              backgroundColor: '#161618',
-              border: '1px solid var(--border)',
-              borderRadius: 'var(--r-lg)',
-              padding: '20px 20px 16px',
-              display: 'flex', flexDirection: 'column', gap: 12,
-            }}
-          >
-            <span style={{ fontSize: 15, fontWeight: '700', color: 'var(--text)' }}>
-              This will also lock {altarUndoWarning.affectedIds.length} other node{altarUndoWarning.affectedIds.length === 1 ? '' : 's'}
-            </span>
-            <p style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5 }}>
-              These were only unlocked through {altarUndoWarning.node.name}, directly or further down the chain — none of them have another open path left:
-            </p>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {altarUndoWarning.affectedIds.map((id) => (
-                <span key={id} style={{
-                  fontSize: 12, fontWeight: '600', color: 'var(--text-dim)',
-                  backgroundColor: 'var(--bg-raised)', border: '1px solid var(--border-subtle)',
-                  borderRadius: 'var(--r-sm)', padding: '3px 8px',
-                }}>
-                  {byId[id]?.name}
-                </span>
-              ))}
-            </div>
-            <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
-              <button
-                onClick={() => setAltarUndoWarning(null)}
-                style={{
-                  flex: 1, height: 42,
-                  backgroundColor: 'var(--bg-raised)', border: '1px solid var(--border-subtle)',
-                  borderRadius: 'var(--r-md)', color: 'var(--text-dim)',
-                  fontSize: 13, fontWeight: '700', cursor: 'pointer',
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={confirmUndoAltarNode}
-                style={{
-                  flex: 1, height: 42,
-                  background: 'linear-gradient(to right, var(--red), #8b0000)',
-                  border: '1px solid var(--red-dim)',
-                  borderRadius: 'var(--r-md)', color: 'white',
-                  fontSize: 13, fontWeight: '700', cursor: 'pointer',
-                }}
-              >
-                Lock Them All
-              </button>
-            </div>
-          </div>
-        </div>
+        <CascadeWarningModal
+          title={`This will also lock ${altarUndoWarning.affectedIds.length} other node${altarUndoWarning.affectedIds.length === 1 ? '' : 's'}`}
+          body={`These were only unlocked through ${altarUndoWarning.node.name}, directly or further down the chain — none of them have another open path left:`}
+          chips={altarUndoWarning.affectedIds.map((id) => byId[id]?.name)}
+          onCancel={() => setAltarUndoWarning(null)}
+          onConfirm={confirmUndoAltarNode}
+          confirmLabel="Lock Them All"
+        />
+      )}
+      {journeyUndoWarning && (
+        <CascadeWarningModal
+          title={`This will also uncheck ${journeyUndoWarning.affectedKeys.length} other task${journeyUndoWarning.affectedKeys.length === 1 ? '' : 's'}`}
+          body={`These were only complete because ${journeyUndoWarning.task.title} was — none of them could really be done without it:`}
+          chips={journeyUndoWarning.affectedKeys.map((key) => reduxState.journeyProgress.find((t) => t.key === key)?.title)}
+          onCancel={() => setJourneyUndoWarning(null)}
+          onConfirm={confirmJourneyCascade}
+          confirmLabel="Uncheck Them All"
+        />
       )}
     </div>
   );
