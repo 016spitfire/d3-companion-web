@@ -115,7 +115,7 @@ const seasonJourneyData = [
     goal: "Defeat Belial on Hard difficulty, level 60+.",
     long: "Defeat Belial on Hard difficulty at character level 60 or higher.",
     completed: false,
-    requires: [],
+    requires: [2],
   },
   {
     key: 13,
@@ -124,7 +124,7 @@ const seasonJourneyData = [
     goal: "Defeat Cydaea on Hard difficulty, level 60+.",
     long: "Defeat Cydaea on Hard difficulty at character level 60 or higher.",
     completed: false,
-    requires: [],
+    requires: [2],
   },
   {
     key: 14,
@@ -216,7 +216,7 @@ const seasonJourneyData = [
     goal: "Defeat Skeleton King on Master difficulty, level 70+.",
     long: "Defeat Skeleton King, on Master difficulty at character level 70 or higher.",
     completed: false,
-    requires: [],
+    requires: [11],
   },
   {
     key: 24,
@@ -225,7 +225,7 @@ const seasonJourneyData = [
     goal: "Defeat Ghom on Master difficulty, level 70+.",
     long: "Defeat Ghom on Master difficulty at character level 70 or higher.",
     completed: false,
-    requires: [],
+    requires: [11],
   },
   {
     key: 25,
@@ -234,7 +234,7 @@ const seasonJourneyData = [
     goal: "Extract a Legendary Power via the Cube.",
     long: "Use Kanai's Cube to extract one Legendary power.",
     completed: false,
-    requires: [],
+    requires: [14],
   },
   {
     key: 26,
@@ -252,7 +252,7 @@ const seasonJourneyData = [
     goal: "Open a bounty cache from Act I.",
     long: "Obtain an Act I Bounty Cache.",
     completed: false,
-    requires: [],
+    requires: [5],
   },
   {
     key: 28,
@@ -261,7 +261,7 @@ const seasonJourneyData = [
     goal: "Open a bounty cache from Act II.",
     long: "Obtain an Act II Bounty Cache.",
     completed: false,
-    requires: [],
+    requires: [5],
   },
   {
     key: 29,
@@ -270,7 +270,7 @@ const seasonJourneyData = [
     goal: "Open a bounty cache from Act III.",
     long: "Obtain an Act III Bounty Cache.",
     completed: false,
-    requires: [],
+    requires: [5],
   },
   {
     key: 30,
@@ -279,7 +279,7 @@ const seasonJourneyData = [
     goal: "Open a bounty cache from Act IV.",
     long: "Obtain an Act IV Bounty Cache.",
     completed: false,
-    requires: [],
+    requires: [5],
   },
   {
     key: 31,
@@ -288,7 +288,7 @@ const seasonJourneyData = [
     goal: "Open a bounty cache from Act V.",
     long: "Obtain an Act V Bounty Cache.",
     completed: false,
-    requires: [],
+    requires: [5],
   },
 
   // Chapter IV
@@ -299,7 +299,7 @@ const seasonJourneyData = [
     goal: "Finish a Torment 1 rift at character level 70.",
     long: "Complete a level 70 Nephalem Rift on Torment I or higher.",
     completed: false,
-    requires: [21],
+    requires: [21, 11],
   },
   {
     key: 33,
@@ -308,7 +308,7 @@ const seasonJourneyData = [
     goal: "Complete a solo Greater Rift at level 20.",
     long: "Complete a Greater Rift Tier 20 or higher solo.",
     completed: false,
-    requires: [],
+    requires: [11],
   },
   {
     key: 34,
@@ -317,7 +317,7 @@ const seasonJourneyData = [
     goal: "Defeat Urzael on Torment 2, level 70.",
     long: "Defeat Urzael on Torment II difficulty at character level 70.",
     completed: false,
-    requires: [],
+    requires: [11],
   },
   {
     key: 35,
@@ -326,7 +326,7 @@ const seasonJourneyData = [
     goal: "Defeat Rakanoth on Torment 4, level 70.",
     long: "Defeat Rakanoth on Torment IV difficulty at character level 70.",
     completed: false,
-    requires: [],
+    requires: [11],
   },
   {
     key: 36,
@@ -335,7 +335,7 @@ const seasonJourneyData = [
     goal: "Upgrade a rare item to legendary.",
     long: "Use Kanai's Cube to upgrade a rare item to legendary quality.",
     completed: false,
-    requires: [],
+    requires: [14],
   },
   {
     key: 37,
@@ -344,7 +344,7 @@ const seasonJourneyData = [
     goal: "Reforge a weapon to add a socket.",
     long: "Use Kanai's Cube to reforge a weapon property into a socket.",
     completed: false,
-    requires: [],
+    requires: [14],
   },
   {
     key: 38,
@@ -427,7 +427,7 @@ const seasonJourneyData = [
     goal: "Defeat Adria on Torment 7.",
     long: "Defeat Adria in the Passage to Corvus on Torment VII difficulty or higher.",
     completed: false,
-    requires: [],
+    requires: [11],
   },
   {
     key: 47,
@@ -436,7 +436,7 @@ const seasonJourneyData = [
     goal: "Defeat Azmodan on Torment 7.",
     long: "Defeat Azmodan on Torment VII difficulty or higher.",
     completed: false,
-    requires: [],
+    requires: [11],
   },
   {
     key: 48,
@@ -445,7 +445,7 @@ const seasonJourneyData = [
     goal: "Fill all Kanai's Cube power slots.",
     long: "Equip Kanai's Cube with a Weapon, Armor, and Jewelry Legendary Power simultaneously.",
     completed: false,
-    requires: [],
+    requires: [14],
   },
   {
     key: 49,
@@ -463,7 +463,7 @@ const seasonJourneyData = [
     goal: "Level a Legendary Gem to 25.",
     long: "Upgrade one Legendary Gem to rank 25 using a Greater Rift Keystone.",
     completed: false,
-    requires: [],
+    requires: [11],
   },
   {
     key: 51,
@@ -519,7 +519,7 @@ const seasonJourneyData = [
     goal: "Defeat Maghda on Torment 10.",
     long: "Defeat the Maghda in Leoric's Manor on Torment X difficulty or higher.",
     completed: false,
-    requires: [],
+    requires: [11],
   },
   {
     key: 57,
@@ -528,7 +528,7 @@ const seasonJourneyData = [
     goal: "Defeat Izual on Torment 10.",
     long: "Defeat Izual on Torment X difficulty or higher.",
     completed: false,
-    requires: [],
+    requires: [11],
   },
   {
     key: 58,
@@ -537,7 +537,7 @@ const seasonJourneyData = [
     goal: "Convert a Set item.",
     long: "Use Kanai's Cube to convert a Set item.",
     completed: false,
-    requires: [],
+    requires: [14],
   },
   {
     key: 59,
@@ -546,7 +546,7 @@ const seasonJourneyData = [
     goal: "Craft a Flawless Royal quality gem.",
     long: "Craft a Gem of Flawless Royal quality.",
     completed: false,
-    requires: [],
+    requires: [26],
   },
   {
     key: 60,
@@ -573,7 +573,7 @@ const seasonJourneyData = [
     goal: "Complete the Realm of Terror on Torment 10.",
     long: "Complete the Realm of Terror (Act III) on Torment X or higher.",
     completed: false,
-    requires: [],
+    requires: [11],
   },
   {
     key: 85,
@@ -582,7 +582,7 @@ const seasonJourneyData = [
     goal: "Complete the Realm of Fright on Torment 10.",
     long: "Complete the Realm of Fright (Act IV) on Torment X or higher.",
     completed: false,
-    requires: [],
+    requires: [11],
   },
 
   // Destroyer
@@ -611,7 +611,7 @@ const seasonJourneyData = [
     goal: "Defeat Araneae on Torment 13.",
     long: "Defeat Araneae on Torment XIII difficulty or higher.",
     completed: false,
-    requires: [],
+    requires: [11],
   },
   {
     key: 66,
@@ -620,7 +620,7 @@ const seasonJourneyData = [
     goal: "Defeat Diablo on Torment 13.",
     long: "Defeat Diablo on Torment XIII difficulty or higher.",
     completed: false,
-    requires: [],
+    requires: [11],
   },
   {
     key: 67,
@@ -685,7 +685,7 @@ const seasonJourneyData = [
     goal: "Defeat the Malthael on T13 in under 90 seconds.",
     long: "Defeat the Malthael on Torment XIII difficulty in under 90 seconds.",
     completed: false,
-    requires: [],
+    requires: [11],
   },
   {
     key: 74,
@@ -694,7 +694,7 @@ const seasonJourneyData = [
     goal: "Defeat Greed on Torment 13.",
     long: "Defeat Greed in The Vault on Torment XIII difficulty or higher.",
     completed: false,
-    requires: [],
+    requires: [11],
   },
   {
     key: 75,
@@ -703,7 +703,7 @@ const seasonJourneyData = [
     goal: "Reforge a Legendary item.",
     long: "Use Kanai's Cube to reforge a Legendary item.",
     completed: false,
-    requires: [],
+    requires: [14],
   },
   {
     key: 76,
@@ -712,7 +712,7 @@ const seasonJourneyData = [
     goal: "Apply a rank 50+ augment to an item.",
     long: "Augment an Ancient Legendary item in Kanai's Cube using a Legendary Gem of rank 50 or higher.",
     completed: false,
-    requires: [],
+    requires: [14],
   },
   {
     key: 77,
@@ -759,7 +759,7 @@ const seasonJourneyData = [
     goal: "Defeat Zoltun Kulle on T13 in under 10 seconds.",
     long: "Defeat Zoltun Kulle on Torment XIII difficulty in under 10 seconds.",
     completed: false,
-    requires: [],
+    requires: [11],
   },
   {
     key: 82,
