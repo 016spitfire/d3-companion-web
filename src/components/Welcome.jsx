@@ -560,7 +560,7 @@ const Welcome = () => {
                   <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>{nextPotionNode.effect}</span>
                   {nextPotionCost && (
                     <span style={{ fontSize: 11, color: 'var(--gold-bright)', fontWeight: '600' }}>
-                      Cost: {nextPotionCost} Primordial Ashes
+                      Cost: {nextPotionCost}
                     </span>
                   )}
                   <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Tap to unlock</span>
@@ -568,7 +568,7 @@ const Welcome = () => {
               ) : (
                 <span style={{ fontSize: 13, fontWeight: '600', color: nextPotionCost ? 'var(--text)' : 'var(--gold-bright)' }}>
                   {nextPotionCost
-                    ? `Next cost (${unlockedPotionCount}/${altarPotionCostSequence.length}): ${nextPotionCost} Primordial Ashes`
+                    ? `Next cost (${unlockedPotionCount}/${altarPotionCostSequence.length}): ${nextPotionCost}`
                     : 'All Potion Powers unlocked'}
                 </span>
               )}
