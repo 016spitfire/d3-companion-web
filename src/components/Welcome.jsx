@@ -512,6 +512,11 @@ const Welcome = () => {
                     {nextSealNode.name} — {nextSealNode.description}
                   </span>
                   <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>{nextSealNode.effect}</span>
+                  {nextSealCost && (
+                    <span style={{ fontSize: 11, color: 'var(--gold-bright)', fontWeight: '600' }}>
+                      Cost: {nextSealCost.join(', ')}
+                    </span>
+                  )}
                   <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Tap to unlock</span>
                 </>
               ) : (
@@ -553,6 +558,11 @@ const Welcome = () => {
                     {nextPotionNode.name} — {nextPotionNode.description}
                   </span>
                   <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>{nextPotionNode.effect}</span>
+                  {nextPotionCost && (
+                    <span style={{ fontSize: 11, color: 'var(--gold-bright)', fontWeight: '600' }}>
+                      Cost: {nextPotionCost} Primordial Ashes
+                    </span>
+                  )}
                   <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Tap to unlock</span>
                 </>
               ) : (
