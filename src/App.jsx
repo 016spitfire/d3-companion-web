@@ -13,6 +13,7 @@ import ParagonTracker from './components/ParagonTracker'
 import AlterOfRites from './components/AlterOfRites'
 import HaedrigsGift from './components/HaedrigsGift'
 import GearTracker from './components/GearTracker'
+import InstallPrompt from './components/InstallPrompt'
 
 const TOP_BAR_HEIGHT = 61
 
@@ -83,6 +84,8 @@ function App() {
           {renderScreen()}
         </div>
       </div>
+
+      <InstallPrompt />
 
       {isMobile && (
         <BottomNav screen={screen} setScreen={setScreen} />
