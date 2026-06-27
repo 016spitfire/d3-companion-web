@@ -157,13 +157,29 @@ const Welcome = () => {
   reduxStateRef.current = reduxState;
 
   const [showCompletedJourney, setShowCompletedJourney] = useState(false);
+  const [journeyView, setJourneyView] = useState('chapter'); // 'chapter' | 'curated'
   const [altarUndoWarning, setAltarUndoWarning] = useState(null); // { node, affectedIds } | null
   const [journeyUndoWarning, setJourneyUndoWarning] = useState(null); // { task, affectedKeys } | null
 
-  // ---- Season Journey: full current-chapter task list ----
+  // ---- Season Journey: chapter view (the linear story path) ----
   const chapterTasks = reduxState.journeyProgress.filter((t) => t.chapter === reduxState.currentChapter);
   const visibleChapterTasks = showCompletedJourney ? chapterTasks : chapterTasks.filter((t) => !t.completed);
   const completedInChapter = chapterTasks.filter((t) => t.completed).length;
+
+  // ---- Season Journey: curated view (the tailored progress tree) ----
+  // "Ready" means every curatedRequires entry is already done — curatedRequires
+  // always includes the real requires chain plus extra pacing-only gates for
+  // tasks with no real prerequisite, so this is never less restrictive than
+  // what's mechanically true, just more deliberately paced. Chapter is ignored
+  // entirely here; a task shows the moment its curated gate clears regardless
+  // of which chapter it's filed under.
+  const journeyByKey = Object.fromEntries(reduxState.journeyProgress.map((t) => [t.key, t]));
+  const curatedReadyTasks = reduxState.journeyProgress
+    .filter((t) => !t.completed && t.curatedRequires.every((id) => journeyByKey[id]?.completed))
+    .sort((a, b) => a.key - b.key);
+  const curatedCompletedTasks = reduxState.journeyProgress.filter((t) => t.completed).sort((a, b) => a.key - b.key);
+  const visibleCuratedTasks = showCompletedJourney ? [...curatedReadyTasks, ...curatedCompletedTasks] : curatedReadyTasks;
+  const totalJourneyCompleted = curatedCompletedTasks.length;
 
   // Checking a task complete also completes its chain (handled inside the
   // thunk). Unchecking is safe immediately unless something already
@@ -353,11 +369,13 @@ const Welcome = () => {
           )}
         </section>
 
-        {/* Season Journey — full chapter list */}
+        {/* Season Journey — chapter view or curated view */}
         <section style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <SectionHeader
             Icon={FaList}
-            title={`Season Journey — ${reduxState.currentChapter} (${completedInChapter}/${chapterTasks.length})`}
+            title={journeyView === 'chapter'
+              ? `Season Journey — ${reduxState.currentChapter} (${completedInChapter}/${chapterTasks.length})`
+              : `Season Journey — Curated (${curatedReadyTasks.length} ready, ${totalJourneyCompleted}/${reduxState.journeyProgress.length} overall)`}
             right={
               <button
                 onClick={() => setShowCompletedJourney((s) => !s)}
@@ -373,13 +391,41 @@ const Welcome = () => {
             }
           />
 
+          <div style={{ display: 'flex', gap: 6 }}>
+            {[{ key: 'chapter', label: 'By Chapter' }, { key: 'curated', label: 'Curated' }].map((v) => (
+              <button
+                key={v.key}
+                onClick={() => setJourneyView(v.key)}
+                style={{
+                  flex: 1, padding: '8px 0',
+                  fontSize: 12, fontWeight: '700',
+                  borderRadius: 'var(--r-md)',
+                  border: '1px solid',
+                  borderColor: journeyView === v.key ? 'var(--red-bright)' : 'var(--border-subtle)',
+                  backgroundColor: journeyView === v.key ? 'rgba(196,18,48,0.12)' : 'var(--bg-surface)',
+                  color: journeyView === v.key ? 'var(--text)' : 'var(--text-muted)',
+                  cursor: 'pointer',
+                }}
+              >
+                {v.label}
+              </button>
+            ))}
+          </div>
+
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {visibleChapterTasks.length === 0 && (
+            {journeyView === 'chapter' && visibleChapterTasks.length === 0 && (
               <span style={{ fontSize: 13, color: 'var(--gold-bright)', padding: '8px 4px' }}>
                 All {reduxState.currentChapter} tasks complete!
               </span>
             )}
-            {visibleChapterTasks.map((task) => (
+            {journeyView === 'curated' && visibleCuratedTasks.length === 0 && (
+              <span style={{ fontSize: 13, color: 'var(--gold-bright)', padding: '8px 4px' }}>
+                {totalJourneyCompleted === reduxState.journeyProgress.length
+                  ? 'All Season Journey tasks complete!'
+                  : 'Nothing new ready yet — keep pushing your current tasks!'}
+              </span>
+            )}
+            {(journeyView === 'chapter' ? visibleChapterTasks : visibleCuratedTasks).map((task) => (
               <button
                 key={task.key}
                 onClick={() => handleJourneyTaskClick(task)}
@@ -411,9 +457,20 @@ const Welcome = () => {
                     fontSize: 13, fontWeight: '600',
                     color: task.completed ? 'var(--text-dim)' : 'var(--text)',
                     textDecoration: task.completed ? 'line-through' : 'none',
+                    flex: 1,
                   }}>
                     {task.title}
                   </span>
+                  {journeyView === 'curated' && (
+                    <span style={{
+                      fontSize: 10, fontWeight: '700', color: 'var(--text-muted)',
+                      letterSpacing: '0.04em', textTransform: 'uppercase',
+                      backgroundColor: 'var(--bg-raised)', borderRadius: 'var(--r-sm)', padding: '2px 6px',
+                      flexShrink: 0,
+                    }}>
+                      {task.chapter}
+                    </span>
+                  )}
                 </div>
                 <span style={{ fontSize: 11, color: 'var(--text-muted)', paddingLeft: 26 }}>
                   {task.goal}

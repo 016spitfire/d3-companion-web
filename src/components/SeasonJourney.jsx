@@ -1,15 +1,15 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { FaChevronDown, FaChevronRight, FaCheck } from 'react-icons/fa';
 import { selectReduxSlice, setJourneyProgress, setJourneyCascade, setCurrentChapter } from '../store/store';
 import { computeJourneyCascadeUncompletes } from '../utils/journeyCascade';
+import { journeyChapters as chapters } from '../data/seasonJourneyData';
 
 const SeasonJourney = () => {
   const dispatch = useDispatch();
   const reduxState = useSelector(selectReduxSlice);
   const reduxStateRef = useRef(reduxState);
   const journeyProgressRef = useRef(reduxState.journeyProgress);
-  const [chapters, setChapters] = useState([]);
   const [showChapterSelect, setShowChapterSelect] = useState(false);
   const [cascadeWarning, setCascadeWarning] = useState(null); // { task, affectedKeys } | null
   reduxStateRef.current = reduxState;
@@ -32,14 +32,6 @@ const SeasonJourney = () => {
     dispatch(setJourneyCascade([cascadeWarning.task.key, ...cascadeWarning.affectedKeys], reduxStateRef.current));
     setCascadeWarning(null);
   };
-
-  useEffect(() => {
-    const allChapters = [];
-    journeyProgressRef.current.forEach((d) => {
-      if (!allChapters.includes(d.chapter)) allChapters.push(d.chapter);
-    });
-    setChapters(allChapters);
-  }, []);
 
   const getChapterProgress = (chapter) => {
     let total = 0;

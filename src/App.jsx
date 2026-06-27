@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react'
-import { useDispatch } from 'react-redux'
-import { getSavedData, setDims } from './store/store'
+import { useState, useEffect, useRef } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
+import { getSavedData, setDims, selectReduxSlice, setCurrentChapter } from './store/store'
+import { journeyChapters } from './data/seasonJourneyData'
 import TopBar from './components/TopBar'
 import Sidebar from './components/Sidebar'
 import BottomNav from './components/BottomNav'
@@ -17,6 +18,9 @@ const TOP_BAR_HEIGHT = 61
 
 function App() {
   const dispatch = useDispatch()
+  const reduxState = useSelector(selectReduxSlice)
+  const reduxStateRef = useRef(reduxState)
+  reduxStateRef.current = reduxState
   const [screen, setScreen] = useState('home')
   const [windowWidth, setWindowWidth] = useState(window.innerWidth)
 
@@ -32,6 +36,18 @@ function App() {
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
   }, [])
+
+  // Lives here rather than in any one screen so it fires regardless of which
+  // screen the player is actually looking at — chapter advancement shouldn't
+  // depend on having visited Home or the Season Journey screen recently.
+  useEffect(() => {
+    const chapterTasks = reduxState.journeyProgress.filter((t) => t.chapter === reduxState.currentChapter)
+    const allDone = chapterTasks.length > 0 && chapterTasks.every((t) => t.completed)
+    if (!allDone) return
+    const idx = journeyChapters.indexOf(reduxState.currentChapter)
+    if (idx === -1 || idx === journeyChapters.length - 1) return
+    dispatch(setCurrentChapter({ val: journeyChapters[idx + 1], currentState: reduxStateRef.current }))
+  }, [reduxState.journeyProgress, reduxState.currentChapter])
 
   const renderScreen = () => {
     switch (screen) {
