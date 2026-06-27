@@ -94,6 +94,17 @@ export const altarSealCostSequence = [
   ['1,600 Blood Shards'],
 ];
 
+// Extra context for cost-ladder items that are a multi-step project rather
+// than a simple grind, so a player can start on them well before they're
+// actually due. Keyed by the exact string as it appears in a cost array
+// above. Only Staff of Herding is filled in for now — other candidates
+// (Ancient Hellfire Amulet, Whisper of Atonement, Ring of Royal Grandeur,
+// Ramaladni's Gift) can get the same treatment later, likely as part of a
+// dedicated "Looking Ahead" section rather than just this inline note.
+export const altarCostSourcingNotes = {
+  'Staff of Herding': "Plan: Staff of Herding drops from Izual (Act IV, not guaranteed). Craft at the Blacksmith for 50,000 gold once you have: Black Mushroom (Cathedral Level 1, Act I), Leoric's Shinbone (Leoric's Manor, Act I), Wirt's Bell (100,000 gold from Squirt in Act II), Liquid Rainbow (Mysterious Cave, Oasis, Act II), and a Gibbering Gemstone (dropped by Chiltara, Caverns of Frost level 2).",
+};
+
 // The 3-step Potion Power cost ladder, in its own separate Primordial Ashes pool —
 // same mechanic as altarSealCostSequence: cost is keyed by which Potion-unlock-
 // number this is, not by which specific Potion you choose.

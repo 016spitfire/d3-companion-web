@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { FaChevronDown, FaChevronRight, FaFlask, FaSave, FaTrash, FaTimes } from 'react-icons/fa';
 import { selectReduxSlice, setAltarProgress, setAltarCascade, setAltarPlan, setAltarSavedPlans } from '../store/store';
-import { altarSealCostSequence, altarPotionCostSequence, altarMatHuntingRoute, altarDamagePushingRoute, altarBalancedRoute } from '../data/altarOfRitesData';
+import { altarSealCostSequence, altarPotionCostSequence, altarCostSourcingNotes, altarMatHuntingRoute, altarDamagePushingRoute, altarBalancedRoute } from '../data/altarOfRitesData';
 import { computeCascadeLocks } from '../utils/altarCascade';
 
 const SUGGESTED_ROUTES = [
@@ -279,11 +279,12 @@ const AlterOfRites = () => {
           const spent = i < unlockedSealCount;
           const current = i === unlockedSealCount;
           if (spent && !showSpentCosts) return null;
+          const sourcingItem = cost.find((item) => altarCostSourcingNotes[item]);
           return (
             <div
               key={i}
               style={{
-                display: 'flex', alignItems: 'baseline', gap: 10,
+                display: 'flex', flexDirection: 'column', gap: 4,
                 padding: '6px 10px',
                 borderRadius: 'var(--r-sm)',
                 backgroundColor: current ? 'rgba(196,18,48,0.12)' : 'transparent',
@@ -291,19 +292,28 @@ const AlterOfRites = () => {
                 opacity: spent ? 0.45 : 1,
               }}
             >
-              <span style={{
-                fontSize: 11, fontWeight: '700', width: 22, flexShrink: 0,
-                color: current ? 'var(--red-bright)' : 'var(--text-muted)',
-              }}>
-                {i + 1}
-              </span>
-              <span style={{
-                fontSize: 12,
-                color: spent ? 'var(--text-muted)' : current ? 'var(--text)' : 'var(--text-dim)',
-                textDecoration: spent ? 'line-through' : 'none',
-              }}>
-                {cost.join(', ')}
-              </span>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
+                <span style={{
+                  fontSize: 11, fontWeight: '700', width: 22, flexShrink: 0,
+                  color: current ? 'var(--red-bright)' : 'var(--text-muted)',
+                }}>
+                  {i + 1}
+                </span>
+                <span style={{
+                  fontSize: 12,
+                  color: spent ? 'var(--text-muted)' : current ? 'var(--text)' : 'var(--text-dim)',
+                  textDecoration: spent ? 'line-through' : 'none',
+                }}>
+                  {cost.join(', ')}
+                </span>
+              </div>
+              {/* Looking-ahead note — flags items that are a multi-step project
+                  rather than a simple grind, so it's worth starting early. */}
+              {!spent && sourcingItem && (
+                <p style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5, paddingLeft: 32 }}>
+                  {altarCostSourcingNotes[sourcingItem]}
+                </p>
+              )}
             </div>
           );
         })}
