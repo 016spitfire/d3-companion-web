@@ -97,14 +97,15 @@ export const altarSealCostSequence = [
 // Extra context for cost-ladder items that are a multi-step project rather
 // than a simple grind, so a player can start on them well before they're
 // actually due. Keyed by the exact string as it appears in a cost array
-// above. Staff of Herding and Reaper's Wraps are filled in for now — other
-// candidates (Ancient Hellfire Amulet, Whisper of Atonement, Ring of Royal
-// Grandeur, Ramaladni's Gift) can get the same treatment later, likely as
-// part of a dedicated "Looking Ahead" section rather than just this inline
-// note.
+// above. Other candidates (Ancient Hellfire Amulet, Whisper of Atonement,
+// Ring of Royal Grandeur, Ramaladni's Gift) can get the same treatment
+// later, likely as part of a dedicated "Looking Ahead" section rather than
+// just this inline note.
 export const altarCostSourcingNotes = {
   'Staff of Herding': "Plan: Staff of Herding drops from Izual (Act IV, not guaranteed). Craft at the Blacksmith for 50,000 gold once you have: Black Mushroom (Cathedral Level 1, Act I), Leoric's Shinbone (Leoric's Manor, Act I), Wirt's Bell (100,000 gold from Squirt in Act II), Liquid Rainbow (Mysterious Cave, Oasis, Act II), and a Gibbering Gemstone (dropped by Chiltara, Caverns of Frost level 2).",
   "Reaper's Wraps": "Plan: Reaper's Wraps has a guaranteed drop from Malthael (Act V, Pandemonium Fortress Level 2 / Fortress of Madness) the first time you kill him each season — no farming RNG, just get there and beat him once. Craft at the Blacksmith once you have the plan.",
+  '4 Tome of Set Dungeon Pages (for your class)': "Each page needs a different full 6-piece class set equipped when you interact with the Tome of Set Dungeons (Royal Quarters, deepest level of Leoric's Manor) — you don't need to actually complete the Set Dungeon, just the page. Getting all 4 means assembling and swapping into 4 different 6-piece sets for your class one at a time.",
+  'Ancient Puzzle Ring': "Any Puzzle Ring drop or Vault run has a small chance to roll Ancient on its own, but the reliable route is finding a regular Puzzle Ring and rerolling it with Kanai's Cube's Law of Kulle recipe (5 of each Act's resource + 50 Forgotten Souls) for another shot at Ancient.",
 };
 
 // The 3-step Potion Power cost ladder, in its own separate Primordial Ashes pool —
