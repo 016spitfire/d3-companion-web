@@ -128,7 +128,7 @@ const GoalCalendar = ({ goalByDate, onToggle }) => {
               }}
             >
               <span style={{
-                fontSize: 11,
+                fontSize: 'clamp(11px, 3vw, 15px)',
                 fontWeight: hasGoal ? '700' : '400',
                 color: d.isToday
                   ? 'var(--gold-bright)'
@@ -140,7 +140,7 @@ const GoalCalendar = ({ goalByDate, onToggle }) => {
               </span>
               {hasGoal && (
                 <span style={{
-                  fontSize: 9, fontWeight: '700', lineHeight: 1,
+                  fontSize: 'clamp(9px, 2.5vw, 13px)', fontWeight: '700', lineHeight: 1,
                   color: completed ? 'rgba(150,255,150,0.8)' : 'var(--gold-bright)',
                 }}>
                   P{entry.level.toLocaleString()}
