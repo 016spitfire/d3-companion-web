@@ -32,8 +32,10 @@ export const reduxSlice = createSlice({
       journeyProgress: seasonJourneyData,
       currentChapter:  seasonJourneyData[0].chapter,
       altarProgress:   altarOfRitesData,
-      altarPlan:       [], // ordered node ids — your intended unlock order, separate from real progress
-      altarSavedPlans: [], // [{ name, plan }] — named snapshots of altarPlan you can reload later
+      altarPlan:        [], // ordered node ids — your intended unlock order, separate from real progress
+      altarSavedPlans:  [], // [{ name, plan }] — named snapshots of altarPlan you can reload later
+      journeyView:      'chapter', // 'chapter' | 'curated' — persisted so Home remembers the last-used view
+      conquestProgress: {}, // { [key]: { sc: bool, hc: bool } } — softcore/hardcore completion per conquest
     },
   },
   reducers: {
@@ -54,6 +56,12 @@ export const reduxSlice = createSlice({
     },
     getAltarSavedPlans: (state, action) => {
       state.value = { ...state.value, altarSavedPlans: action.payload };
+    },
+    getJourneyView: (state, action) => {
+      state.value = { ...state.value, journeyView: action.payload };
+    },
+    getConquestProgress: (state, action) => {
+      state.value = { ...state.value, conquestProgress: action.payload };
     },
     getSeasonalParagon: (state, action) => {
       state.value = { ...state.value, seasonParagon: action.payload };
@@ -139,6 +147,8 @@ export const {
   getAltarProgress,
   getAltarPlan,
   getAltarSavedPlans,
+  getJourneyView,
+  getConquestProgress,
   getClaimsToday,
 } = reduxSlice.actions;
 
@@ -169,8 +179,10 @@ const saveData = (currentState) => {
       journeyProgress: currentState.journeyProgress,
       currentChapter:  currentState.currentChapter,
       altarProgress:   currentState.altarProgress,
-      altarPlan:       currentState.altarPlan,
-      altarSavedPlans: currentState.altarSavedPlans,
+      altarPlan:        currentState.altarPlan,
+      altarSavedPlans:  currentState.altarSavedPlans,
+      journeyView:      currentState.journeyView,
+      conquestProgress: currentState.conquestProgress,
     });
     localStorage.setItem('DIABLO_3_COMPANION_SAVE_DATA', jsonValue);
   } catch (e) {
@@ -313,6 +325,14 @@ export const setAltarPlan = (newPlan, currentState) => (dispatch) => {
 export const setAltarSavedPlans = (newSavedPlans, currentState) => (dispatch) => {
   saveData({ ...currentState, altarSavedPlans: newSavedPlans });
   dispatch(getAltarSavedPlans(newSavedPlans));
+};
+export const setJourneyView = (val, currentState) => (dispatch) => {
+  saveData({ ...currentState, journeyView: val });
+  dispatch(getJourneyView(val));
+};
+export const setConquestProgress = (val, currentState) => (dispatch) => {
+  saveData({ ...currentState, conquestProgress: val });
+  dispatch(getConquestProgress(val));
 };
 
 export const getSavedData = () => (dispatch) => {

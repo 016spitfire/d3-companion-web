@@ -1,18 +1,34 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { FaCheck, FaSkull } from 'react-icons/fa';
 import conquestData from '../data/conquestData';
+import { selectReduxSlice, setConquestProgress } from '../store/store';
 
 const Conquests = () => {
+  const dispatch      = useDispatch();
+  const reduxState    = useSelector(selectReduxSlice);
+  const reduxStateRef = useRef(reduxState);
+  reduxStateRef.current = reduxState;
+
   const [showShort, setShowShort] = useState(true);
-  const [completedMap, setCompletedMap] = useState(() =>
-    Object.fromEntries(conquestData.filter((d) => d.active).map((d) => [d.key, { sc: d.completed, hc: d.completedHardcore }]))
+
+  const activeConquests = conquestData.filter((d) => d.active);
+
+  // Build a completion map from Redux state, falling back to the data file's
+  // defaults for any conquest not yet touched (handles fresh installs and new
+  // seasons where conquestProgress starts empty).
+  const completedMap = Object.fromEntries(
+    activeConquests.map((d) => [
+      d.key,
+      reduxState.conquestProgress?.[d.key] ?? { sc: d.completed, hc: d.completedHardcore },
+    ])
   );
 
   const toggle = (key, field) => {
-    setCompletedMap((prev) => ({
-      ...prev,
-      [key]: { ...prev[key], [field]: !prev[key][field] },
-    }));
+    const state = reduxStateRef.current;
+    const current = state.conquestProgress?.[key] ?? { sc: false, hc: false };
+    const updated = { ...state.conquestProgress, [key]: { ...current, [field]: !current[field] } };
+    dispatch(setConquestProgress(updated, state));
   };
 
   return (
@@ -45,12 +61,12 @@ const Conquests = () => {
 
       {/* Conquest list */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px 24px' }}>
-        {conquestData.filter((d) => d.active).length === 0 && (
+        {activeConquests.length === 0 && (
           <p style={{ fontSize: 13, color: 'var(--text-muted)', padding: '16px 0' }}>
             No active conquests set for this season.
           </p>
         )}
-        {conquestData.filter((d) => d.active).map((d) => {
+        {activeConquests.map((d) => {
           const scDone = completedMap[d.key].sc;
           const hcDone = completedMap[d.key].hc;
 

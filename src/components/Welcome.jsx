@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { DateTime } from 'luxon';
 import { FaList, FaFire, FaCheck, FaEye, FaEyeSlash, FaUndo } from 'react-icons/fa';
 import {
   selectReduxSlice,
@@ -8,6 +9,7 @@ import {
   setAltarProgress,
   setAltarCascade,
   setGoalData,
+  setJourneyView,
 } from '../store/store';
 import { altarSealCostSequence, altarPotionCostSequence } from '../data/altarOfRitesData';
 import { computeCascadeLocks } from '../utils/altarCascade';
@@ -137,7 +139,7 @@ const Welcome = () => {
   reduxStateRef.current = reduxState;
 
   const [showCompletedJourney, setShowCompletedJourney] = useState(false);
-  const [journeyView, setJourneyView] = useState('chapter'); // 'chapter' | 'curated'
+  const journeyView = reduxState.journeyView ?? 'chapter';
   const [altarUndoWarning, setAltarUndoWarning] = useState(null); // { node, affectedIds } | null
   const [journeyUndoWarning, setJourneyUndoWarning] = useState(null); // { task, affectedKeys } | null
 
@@ -349,7 +351,7 @@ const Welcome = () => {
             {[{ key: 'chapter', label: 'By Chapter' }, { key: 'curated', label: 'Curated' }].map((v) => (
               <button
                 key={v.key}
-                onClick={() => setJourneyView(v.key)}
+                onClick={() => dispatch(setJourneyView(v.key, reduxStateRef.current))}
                 style={{
                   flex: 1, padding: '8px 0',
                   fontSize: 12, fontWeight: '700',
