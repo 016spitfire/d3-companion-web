@@ -1,37 +1,17 @@
 import { useState, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { DateTime } from 'luxon';
-import { FaList, FaFire, FaCheck, FaEye, FaEyeSlash, FaGift, FaUndo } from 'react-icons/fa';
+import { FaList, FaFire, FaCheck, FaEye, FaEyeSlash, FaUndo } from 'react-icons/fa';
 import {
   selectReduxSlice,
   setJourneyProgress,
   setJourneyCascade,
   setAltarProgress,
   setAltarCascade,
-  setTrackerData,
-  setClaimsToday,
+  setGoalData,
 } from '../store/store';
 import { altarSealCostSequence, altarPotionCostSequence } from '../data/altarOfRitesData';
 import { computeCascadeLocks } from '../utils/altarCascade';
 import { computeJourneyCascadeUncompletes } from '../utils/journeyCascade';
-
-const parseDate = (str) => {
-  const year = new Date().getFullYear();
-  let parsed = DateTime.fromFormat(`${str} ${year}`, 'MMM d yyyy');
-  if (!parsed.isValid) return null;
-  if (parsed.diff(DateTime.now(), 'months').months > 6) {
-    parsed = DateTime.fromFormat(`${str} ${year - 1}`, 'MMM d yyyy');
-  }
-  return parsed;
-};
-
-const getNextClaimDate = (history, startDate) => {
-  if (!startDate) return null;
-  if (history.length === 0) return startDate;
-  const parsed = parseDate(history[history.length - 1].date);
-  if (!parsed) return startDate;
-  return parsed.plus({ days: 1 }).toLocaleString({ month: 'short', day: 'numeric' });
-};
 
 const StatCard = ({ label, value }) => (
   <div
@@ -243,46 +223,28 @@ const Welcome = () => {
     setAltarUndoWarning(null);
   };
 
-  // ---- Paragon: next goal, click-to-claim, same-day bonus marking ----
-  const todaysGoal = reduxState.playQueue?.[0];
-  const todayISO = DateTime.now().toISODate();
-  const claimsToday = reduxState.claimsToday;
-  const claimedToday = claimsToday.date === todayISO && claimsToday.count > 0;
-  const bonusToday = claimsToday.date === todayISO && claimsToday.count > 1;
+  // ---- Paragon: next goal from goalData, click-to-claim, undo ----
+  const goalData     = reduxState.goalData ?? [];
+  const trackerMethod = reduxState.trackerMethod ?? 'milestone';
+  const nextGoal     = goalData.find((d) => !d.completed) ?? null;
+  const lastCompleted = [...goalData].reverse().find((d) => d.completed) ?? null;
 
   const claimParagonGoal = () => {
+    if (!nextGoal) return;
     const state = reduxStateRef.current;
-    const nextDate = getNextClaimDate(state.history, state.startDate);
-    if (!nextDate || state.playQueue.length === 0) return;
-    const item = state.playQueue[0];
-    dispatch(setTrackerData({
-      playQueue: state.playQueue.slice(1),
-      restQueue: state.restQueue,
-      history: [...state.history, { type: 'play', date: nextDate, level: item.level, difference: item.difference }],
-    }, state));
-    const newCount = state.claimsToday.date === todayISO ? state.claimsToday.count + 1 : 1;
-    dispatch(setClaimsToday({ date: todayISO, count: newCount }, state));
+    const newGoalData = state.goalData.map((d) =>
+      d.key === nextGoal.key ? { ...d, completed: true } : d
+    );
+    dispatch(setGoalData(newGoalData, state));
   };
 
-  // Unwinds the single most recent history entry back onto its queue — same
-  // approach as ParagonTracker's deleteEntry, just always targeting the tail.
-  // Only decrements today's claim count if that entry was actually claimed
-  // today; an entry from a previous day leaves today's count alone.
   const undoLastClaim = () => {
+    if (!lastCompleted) return;
     const state = reduxStateRef.current;
-    if (state.history.length === 0) return;
-    const last = state.history[state.history.length - 1];
-    const newHistory = state.history.slice(0, -1);
-    const playQueue = last.type === 'play'
-      ? [{ level: last.level, difference: last.difference, goal: 0 }, ...state.playQueue]
-      : state.playQueue;
-    const restQueue = last.type === 'rest'
-      ? [{ key: 0 }, ...state.restQueue]
-      : state.restQueue;
-    dispatch(setTrackerData({ playQueue, restQueue, history: newHistory }, state));
-    if (state.claimsToday.date === todayISO && state.claimsToday.count > 0) {
-      dispatch(setClaimsToday({ date: todayISO, count: state.claimsToday.count - 1 }, state));
-    }
+    const newGoalData = state.goalData.map((d) =>
+      d.key === lastCompleted.key ? { ...d, completed: false } : d
+    );
+    dispatch(setGoalData(newGoalData, state));
   };
 
   return (
@@ -319,14 +281,14 @@ const Welcome = () => {
 
         {/* Paragon stats */}
         <section style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <SectionHeader Icon={FaList} title="Today's Paragon" />
+          <SectionHeader Icon={FaList} title="Paragon Goal" />
           <div style={{ display: 'flex', gap: 10 }}>
             <StatCard label="Non-Season" value={reduxState.currentParagons} />
             <StatCard label="Season" value={reduxState.seasonParagon} />
-            <StatCard label="Next Goal" value={todaysGoal ? `P ${todaysGoal.level}` : '—'} />
+            <StatCard label="Next Goal" value={nextGoal ? `P ${nextGoal.level}` : '—'} />
           </div>
 
-          {todaysGoal && (
+          {nextGoal && (
             <button
               onClick={claimParagonGoal}
               style={{
@@ -335,36 +297,28 @@ const Welcome = () => {
                 alignItems: 'center',
                 gap: 10,
                 padding: '12px 16px',
-                backgroundColor: claimedToday && bonusToday ? 'rgba(255,215,0,0.08)' : 'var(--bg-surface)',
-                border: '1px solid',
-                borderColor: claimedToday && bonusToday ? 'rgba(255,215,0,0.4)' : 'var(--border-subtle)',
-                borderLeft: '3px solid',
-                borderLeftColor: claimedToday && bonusToday ? 'gold' : 'var(--red-dim)',
+                backgroundColor: 'var(--bg-surface)',
+                border: '1px solid var(--border-subtle)',
+                borderLeft: '3px solid var(--red-dim)',
                 borderRadius: 'var(--r-md)',
                 cursor: 'pointer',
               }}
             >
-              {claimedToday && bonusToday ? (
-                <FaGift size={14} style={{ color: 'gold', flexShrink: 0 }} />
-              ) : (
-                <FaCheck size={14} style={{ color: claimedToday ? 'var(--gold-bright)' : 'var(--red-bright)', flexShrink: 0 }} />
-              )}
+              <FaCheck size={14} style={{ color: 'var(--red-bright)', flexShrink: 0 }} />
               <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left', gap: 2 }}>
                 <span style={{ fontSize: 13, fontWeight: '700', color: 'var(--text)' }}>
-                  {claimedToday
-                    ? (bonusToday ? 'Bonus goal claimed — ahead of pace!' : "Today's goal complete!")
-                    : `Claim Paragon ${todaysGoal.level} (+${todaysGoal.difference})`}
+                  {`Claim Paragon ${nextGoal.level.toLocaleString()} (+${nextGoal.difference})`}
                 </span>
                 <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                  {claimedToday
-                    ? `Next up: Paragon ${todaysGoal.level} (+${todaysGoal.difference})`
-                    : 'Tap to mark today\'s goal as done'}
+                  {trackerMethod === 'daily' && nextGoal.date
+                    ? `Target date: ${nextGoal.date} · Milestone ${nextGoal.key} of ${goalData.length}`
+                    : `Milestone ${nextGoal.key} of ${goalData.length}`}
                 </span>
               </div>
             </button>
           )}
 
-          {reduxState.history.length > 0 && (
+          {lastCompleted && (
             <UndoLink label="Undo last claim" onClick={undoLastClaim} />
           )}
         </section>

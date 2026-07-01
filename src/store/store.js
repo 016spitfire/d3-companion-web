@@ -16,13 +16,16 @@ export const reduxSlice = createSlice({
       goalTarget:      0,
       weeks:           0,
       daysPerWeek:     0,
+      goalData:        [],
+      milestoneCount:  10,
+      trackerMethod:   'milestone',
+      // Legacy fields kept so old saved data deserialises cleanly — no longer
+      // written to by any UI action, but setSavedData spreads the payload so
+      // they'll re-hydrate harmlessly if present in localStorage.
       playQueue:       [],
       restQueue:       [],
       history:         [],
       startDate:       null,
-      // Real-world claim count for today (not the virtual history date) — lets Home
-      // tell a normal daily claim apart from a same-day bonus claim, and lets undo
-      // decrement it back down correctly instead of just clearing a single boolean.
       claimsToday:     { date: null, count: 0 },
       width:  typeof window !== 'undefined' ? window.innerWidth  : 480,
       height: typeof window !== 'undefined' ? window.innerHeight : 800,
@@ -79,6 +82,15 @@ export const reduxSlice = createSlice({
     getDaysPerWeek: (state, action) => {
       state.value = { ...state.value, daysPerWeek: action.payload };
     },
+    getGoalData: (state, action) => {
+      state.value = { ...state.value, goalData: action.payload };
+    },
+    getMilestoneCount: (state, action) => {
+      state.value = { ...state.value, milestoneCount: action.payload };
+    },
+    getTrackerMethod: (state, action) => {
+      state.value = { ...state.value, trackerMethod: action.payload };
+    },
     getTrackerData: (state, action) => {
       const { playQueue, restQueue, history } = action.payload;
       state.value = { ...state.value, playQueue, restQueue, history };
@@ -117,6 +129,9 @@ export const {
   getGoalTarget,
   getWeeks,
   getDaysPerWeek,
+  getGoalData,
+  getMilestoneCount,
+  getTrackerMethod,
   getTrackerData,
   getNewStartDate,
   getSeasonJourneyProgress,
@@ -141,12 +156,15 @@ const saveData = (currentState) => {
       goalParagonsLinked: currentState.goalParagonsLinked,
       goalMode:        currentState.goalMode,
       goalTarget:      currentState.goalTarget,
+      goalData:        currentState.goalData,
+      milestoneCount:  currentState.milestoneCount,
+      trackerMethod:   currentState.trackerMethod,
       weeks:           currentState.weeks,
       daysPerWeek:     currentState.daysPerWeek,
+      startDate:       currentState.startDate,
       playQueue:       currentState.playQueue,
       restQueue:       currentState.restQueue,
       history:         currentState.history,
-      startDate:       currentState.startDate,
       claimsToday:     currentState.claimsToday,
       journeyProgress: currentState.journeyProgress,
       currentChapter:  currentState.currentChapter,
@@ -200,6 +218,18 @@ export const setDaysPerWeek = (val, currentState) => (dispatch) => {
   const fixedVal = Number(val) > 7 ? 7 : val;
   saveData({ ...currentState, daysPerWeek: fixedVal });
   dispatch(getDaysPerWeek(fixedVal));
+};
+export const setGoalData = (val, currentState) => (dispatch) => {
+  saveData({ ...currentState, goalData: val });
+  dispatch(getGoalData(val));
+};
+export const setMilestoneCount = (val, currentState) => (dispatch) => {
+  saveData({ ...currentState, milestoneCount: val });
+  dispatch(getMilestoneCount(val));
+};
+export const setTrackerMethod = (val, currentState) => (dispatch) => {
+  saveData({ ...currentState, trackerMethod: val });
+  dispatch(getTrackerMethod(val));
 };
 export const setTrackerData = (val, currentState) => (dispatch) => {
   saveData({ ...currentState, ...val });
