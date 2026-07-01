@@ -41,6 +41,119 @@ const buildGoalData = ({ goalExp, count, dates }) => {
   return entries;
 };
 
+// Read-only calendar that overlays goalData onto a month grid.
+// Cells with a goal show the target paragon level and are clickable to toggle.
+const GoalCalendar = ({ goalByDate, onToggle }) => {
+  const [currentMonth, setCurrentMonth] = useState(DateTime.now());
+  const todayStr = DateTime.now().toLocaleString({ month: 'short', day: 'numeric' });
+  const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+  const startDate = currentMonth.startOf('month');
+  const endDate   = currentMonth.endOf('month');
+  const days = Interval.fromDateTimes(startDate.startOf('week'), endDate.endOf('week'))
+    .splitBy({ day: 1 })
+    .map((d) => {
+      const monthShort = d.start.toLocaleString({ month: 'short' });
+      const dayNum     = d.start.toLocaleString({ day: 'numeric' });
+      return {
+        dateStr:     `${monthShort} ${dayNum}`,
+        dayNum,
+        inMonth:     d.start.month === currentMonth.month,
+        isToday:     `${monthShort} ${dayNum}` === todayStr,
+      };
+    });
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      {/* Month nav */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+        <button
+          onClick={() => setCurrentMonth((m) => m.minus({ months: 1 }))}
+          style={{ width: 28, height: 28, borderRadius: '50%', backgroundColor: 'var(--bg-raised)', border: '1px solid var(--border-subtle)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        >
+          <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>‹</span>
+        </button>
+        <span style={{ fontSize: 13, fontWeight: '700', color: 'var(--text)' }}>
+          {currentMonth.toLocaleString({ month: 'long', year: 'numeric' })}
+        </span>
+        <button
+          onClick={() => setCurrentMonth((m) => m.plus({ months: 1 }))}
+          style={{ width: 28, height: 28, borderRadius: '50%', backgroundColor: 'var(--bg-raised)', border: '1px solid var(--border-subtle)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        >
+          <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>›</span>
+        </button>
+      </div>
+
+      {/* Weekday headers */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2 }}>
+        {weekDays.map((d) => (
+          <div key={d} style={{ textAlign: 'center', padding: '2px 0' }}>
+            <span style={{ fontSize: 10, color: 'var(--text-muted)', letterSpacing: '0.06em' }}>{d}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Day grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2 }}>
+        {days.map((d) => {
+          const entry     = goalByDate[d.dateStr];
+          const completed = entry?.completed ?? false;
+          const hasGoal   = !!entry;
+
+          return (
+            <button
+              key={d.dateStr}
+              onClick={() => entry && onToggle(entry)}
+              disabled={!hasGoal}
+              style={{
+                display: 'flex', flexDirection: 'column',
+                alignItems: 'center', justifyContent: 'center',
+                height: 48,
+                borderRadius: 'var(--r-sm)',
+                border: '1px solid',
+                borderColor: d.isToday
+                  ? 'var(--gold)'
+                  : completed
+                    ? 'rgba(150,255,150,0.25)'
+                    : hasGoal
+                      ? 'var(--border-subtle)'
+                      : 'transparent',
+                backgroundColor: completed
+                  ? 'rgba(150,255,150,0.08)'
+                  : hasGoal
+                    ? 'var(--bg-surface)'
+                    : 'transparent',
+                cursor: hasGoal ? 'pointer' : 'default',
+                gap: 2,
+              }}
+            >
+              <span style={{
+                fontSize: 11,
+                fontWeight: hasGoal ? '700' : '400',
+                color: d.isToday
+                  ? 'var(--gold-bright)'
+                  : d.inMonth
+                    ? hasGoal ? 'var(--text)' : 'var(--text-muted)'
+                    : 'rgba(255,255,255,0.12)',
+              }}>
+                {d.dayNum}
+              </span>
+              {hasGoal && (
+                <span style={{
+                  fontSize: 9, fontWeight: '700', lineHeight: 1,
+                  color: completed ? 'rgba(150,255,150,0.8)' : 'var(--gold-bright)',
+                }}>
+                  P{entry.level.toLocaleString()}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
 const ParagonTracker = () => {
   const dispatch      = useDispatch();
   const reduxState    = useSelector(selectReduxSlice);
@@ -99,6 +212,8 @@ const ParagonTracker = () => {
 
   // ---- derived ----
 
+  const [dailyView, setDailyView] = useState('list');
+
   const { goalData } = reduxState;
   const hasPlan      = goalData.length > 0;
   const completedCount = goalData.filter((d) => d.completed).length;
@@ -108,14 +223,20 @@ const ParagonTracker = () => {
   const canCalcDaily     = reduxState.goalParagons > 0 && reduxState.weeks > 0
     && reduxState.daysPerWeek > 0 && !!reduxState.startDate;
 
+  // Weekly groups for the daily list view — 7 entries per week
   const weekGroups = (() => {
-    if (!hasPlan) return [];
+    if (!hasPlan || method !== 'daily') return [];
     const groups = [];
     for (let i = 0; i < goalData.length; i += 7) {
       groups.push(goalData.slice(i, i + 7));
     }
     return groups;
   })();
+
+  // Lookup map for calendar view: "MMM D" → goalData entry
+  const goalByDate = Object.fromEntries(
+    goalData.filter((d) => d.date).map((d) => [d.date, d])
+  );
 
   const switchMethod = (m) => {
     dispatch(setTrackerMethod(m, reduxStateRef.current));
@@ -388,103 +509,120 @@ const ParagonTracker = () => {
                 : 'Set your goal, weeks, days per week, pick a start date, then hit Calculate.'}
             </span>
           </div>
+        ) : method === 'milestone' ? (
+          // ── Milestone view: flat grid, no groupings ──
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+            {goalData.map((entry) => (
+              <button
+                key={entry.key}
+                onClick={() => setCompleted(entry)}
+                style={{
+                  display: 'flex', alignItems: 'center',
+                  gap: dense ? 8 : 10,
+                  padding: dense ? '6px 10px' : '10px 12px',
+                  borderRadius: 'var(--r-md)',
+                  border: '1px solid',
+                  borderColor: entry.completed ? 'rgba(150,255,150,0.25)' : 'var(--border-subtle)',
+                  backgroundColor: entry.completed ? 'rgba(150,255,150,0.08)' : 'var(--bg-surface)',
+                  cursor: 'pointer', textAlign: 'left',
+                }}
+              >
+                <span style={{ fontSize: 10, color: 'var(--text-muted)', width: 22, flexShrink: 0 }}>
+                  #{entry.key}
+                </span>
+                <span style={{ flex: 1, fontSize: dense ? 13 : 16, fontWeight: '700', color: entry.completed ? 'rgba(150,255,150,0.8)' : 'var(--gold-bright)' }}>
+                  P {entry.level.toLocaleString()}
+                </span>
+                <span style={{ fontSize: dense ? 11 : 12, color: 'var(--text-dim)', flexShrink: 0 }}>
+                  +{entry.difference}
+                </span>
+              </button>
+            ))}
+          </div>
         ) : (
+          // ── Daily view: list or calendar toggle ──
           <>
-            {method === 'daily' && (
-              <div style={{
-                display: 'flex',
-                backgroundColor: 'white',
-                marginBottom: 4,
-                padding: '2px 0',
-                borderRadius: 'var(--r-sm)',
-              }}>
-                {[0, 1].map((i) => (
-                  <div key={i} style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', width: '50%', padding: '0 8px' }}>
-                    <span style={{ fontSize: 11, fontWeight: 'bold', color: '#333', width: 46 }}>Date</span>
-                    <span style={{ fontSize: 11, flex: 1, color: '#333' }}>Paragon</span>
-                    <span style={{ fontSize: 11, color: '#333' }}>Diff</span>
-                  </div>
-                ))}
-              </div>
-            )}
+            <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+              {[{ key: 'list', label: 'List' }, { key: 'calendar', label: 'Calendar' }].map((v) => (
+                <button
+                  key={v.key}
+                  onClick={() => setDailyView(v.key)}
+                  style={{
+                    flex: 1, height: 28,
+                    backgroundColor: dailyView === v.key ? 'var(--red-glow)' : 'transparent',
+                    border: '1px solid',
+                    borderColor: dailyView === v.key ? 'var(--red-dim)' : 'var(--border-subtle)',
+                    borderRadius: 'var(--r-sm)',
+                    color: dailyView === v.key ? 'var(--text)' : 'var(--text-muted)',
+                    fontSize: 11, fontWeight: dailyView === v.key ? '700' : '400',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {v.label}
+                </button>
+              ))}
+            </div>
 
-            {method === 'milestone' ? (
-              // Milestone view: groups of 7 with week headers
-              weekGroups.map((group, gi) => (
-                <div key={gi} style={{ marginBottom: 20 }}>
-                  <div style={{
-                    display: 'flex', alignItems: 'center', gap: 10,
-                    marginBottom: 6, paddingBottom: 5,
-                    borderBottom: '1px solid var(--border-subtle)',
-                  }}>
-                    <span style={{ fontSize: 11, fontWeight: '700', color: 'var(--text-dim)', letterSpacing: '0.06em' }}>
-                      {gi === 0 ? 'MILESTONES' : `MILESTONES ${gi * 7 + 1}–${Math.min((gi + 1) * 7, goalData.length)}`}
-                    </span>
-                    <span style={{ fontSize: 10, color: 'var(--text-muted)', marginLeft: 'auto' }}>
-                      {group.filter((d) => d.completed).length}/{group.length} done
-                    </span>
+            {dailyView === 'list' ? (
+              // Weekly grouped list
+              weekGroups.map((group, gi) => {
+                const start = group[0]?.date;
+                const end   = group[group.length - 1]?.date;
+                return (
+                  <div key={gi} style={{ marginBottom: 18 }}>
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: 10,
+                      marginBottom: 6, paddingBottom: 5,
+                      borderBottom: '1px solid var(--border-subtle)',
+                    }}>
+                      <span style={{ fontSize: 11, fontWeight: '700', color: 'var(--text-dim)', letterSpacing: '0.06em' }}>
+                        WEEK {gi + 1}
+                      </span>
+                      {start && (
+                        <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                          {start}{end && end !== start ? ` – ${end}` : ''}
+                        </span>
+                      )}
+                      <span style={{ fontSize: 10, color: 'var(--text-muted)', marginLeft: 'auto' }}>
+                        {group.filter((d) => d.completed).length}/{group.length} done
+                      </span>
+                    </div>
+                    <div style={{
+                      display: 'flex', flexDirection: 'row', flexWrap: 'wrap',
+                      justifyContent: 'space-between', gap: 3,
+                    }}>
+                      {group.map((entry) => (
+                        <button
+                          key={entry.key}
+                          onClick={() => setCompleted(entry)}
+                          style={{
+                            display: 'flex', flexDirection: 'row',
+                            justifyContent: 'space-between', alignItems: 'center',
+                            width: 'calc(50% - 2px)',
+                            height: dense ? 26 : 32,
+                            borderRadius: 'var(--r-sm)',
+                            backgroundColor: entry.completed ? 'rgba(150,255,150,0.08)' : 'var(--bg-surface)',
+                            border: '1px solid',
+                            borderColor: entry.completed ? 'rgba(150,255,150,0.2)' : 'var(--border-subtle)',
+                            cursor: 'pointer', padding: '0 10px',
+                          }}
+                        >
+                          <span style={{ fontSize: 11, width: 50, textAlign: 'left', color: 'var(--text-muted)', flexShrink: 0 }}>
+                            {entry.date ?? `#${entry.key}`}
+                          </span>
+                          <span style={{ flex: 1, fontSize: 12, fontWeight: '700', textAlign: 'left', color: entry.completed ? 'rgba(150,255,150,0.7)' : 'var(--gold-bright)' }}>
+                            {entry.level.toLocaleString()}
+                          </span>
+                          <span style={{ fontSize: 11, color: 'var(--text-dim)', flexShrink: 0 }}>+{entry.difference}</span>
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
-                    {group.map((entry) => (
-                      <button
-                        key={entry.key}
-                        onClick={() => setCompleted(entry)}
-                        style={{
-                          display: 'flex', alignItems: 'center',
-                          gap: dense ? 8 : 10,
-                          padding: dense ? '6px 10px' : '10px 12px',
-                          borderRadius: 'var(--r-md)',
-                          border: '1px solid',
-                          borderColor: entry.completed ? 'rgba(150,255,150,0.25)' : 'var(--border-subtle)',
-                          backgroundColor: entry.completed ? 'rgba(150,255,150,0.08)' : 'var(--bg-surface)',
-                          cursor: 'pointer', textAlign: 'left',
-                        }}
-                      >
-                        <span style={{ fontSize: 10, color: 'var(--text-muted)', width: 22, flexShrink: 0 }}>
-                          #{entry.key}
-                        </span>
-                        <span style={{ flex: 1, fontSize: dense ? 13 : 16, fontWeight: '700', color: entry.completed ? 'rgba(150,255,150,0.8)' : 'var(--gold-bright)' }}>
-                          P {entry.level.toLocaleString()}
-                        </span>
-                        <span style={{ fontSize: dense ? 11 : 12, color: 'var(--text-dim)', flexShrink: 0 }}>
-                          +{entry.difference}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ))
+                );
+              })
             ) : (
-              // Daily view: flat 2-column list matching original layout
-              <div style={{
-                display: 'flex', flexDirection: 'row', flexWrap: 'wrap',
-                justifyContent: 'space-between', alignContent: 'flex-start', gap: 2,
-              }}>
-                {goalData.map((entry) => (
-                  <button
-                    key={entry.key}
-                    onClick={() => setCompleted(entry)}
-                    style={{
-                      display: 'flex', flexDirection: 'row',
-                      justifyContent: 'space-between', alignItems: 'center',
-                      width: 'calc(50% - 1px)',
-                      height: dense ? 25 : 30,
-                      borderRadius: 2,
-                      backgroundColor: entry.completed ? 'rgba(150,255,150,1)' : 'rgba(215,215,255,0.7)',
-                      border: 'none', cursor: 'pointer',
-                      padding: '0 8px',
-                    }}
-                  >
-                    <span style={{ fontWeight: 'bold', fontSize: 11, width: 50, textAlign: 'left', color: '#222' }}>
-                      {entry.date ?? `#${entry.key}`}
-                    </span>
-                    <span style={{ flex: 1, fontSize: 11, textAlign: 'left', color: '#222' }}>
-                      {entry.level.toLocaleString()}
-                    </span>
-                    <span style={{ fontSize: 11, color: '#222' }}>+{entry.difference}</span>
-                  </button>
-                ))}
-              </div>
+              // Calendar view
+              <GoalCalendar goalByDate={goalByDate} onToggle={setCompleted} />
             )}
           </>
         )}
