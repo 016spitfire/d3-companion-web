@@ -1,25 +1,27 @@
 import { useState } from 'react';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { FaHome, FaList, FaCalculator, FaChartBar, FaTrophy, FaEllipsisH } from 'react-icons/fa';
 
 const mainItems = [
-  { screen: 'home',           label: 'Home',      Icon: FaHome },
-  { screen: 'seasonJourney',  label: 'Season',    Icon: FaList },
-  { screen: 'paragonCalc',    label: 'Paragon',   Icon: FaCalculator },
-  { screen: 'paragonTracker', label: 'Tracker',   Icon: FaChartBar },
-  { screen: 'conquests',      label: 'Conquests', Icon: FaTrophy },
+  { path: '/',          label: 'Home',    Icon: FaHome },
+  { path: '/journey',   label: 'Season',  Icon: FaList },
+  { path: '/paragon',   label: 'Paragon', Icon: FaCalculator },
+  { path: '/tracker',   label: 'Tracker', Icon: FaChartBar },
+  { path: '/conquests', label: 'Conquests', Icon: FaTrophy },
 ];
 
 const moreItems = [
-  { screen: 'alterRites',   label: 'Altar of Rites' },
-  { screen: 'gearTracker',  label: 'Gear Tracker' },
-  { screen: 'haedrigsGift', label: "Haedrig's Gift" },
+  { path: '/altar',   label: 'Altar of Rites' },
+  { path: '/gear',    label: 'Gear Tracker' },
+  { path: '/haedrig', label: "Haedrig's Gift" },
 ];
 
-const BottomNav = ({ screen, setScreen }) => {
+const BottomNav = () => {
   const [showMore, setShowMore] = useState(false);
+  const navigate = useNavigate();
 
-  const navigate = (s) => {
-    setScreen(s);
+  const goTo = (path) => {
+    navigate(path);
     setShowMore(false);
   };
 
@@ -44,25 +46,27 @@ const BottomNav = ({ screen, setScreen }) => {
             }}
           >
             {moreItems.map((item) => (
-              <button
-                key={item.screen}
-                onClick={() => navigate(item.screen)}
-                style={{
+              <NavLink
+                key={item.path}
+                to={item.path}
+                onClick={() => setShowMore(false)}
+                style={({ isActive }) => ({
                   width: '100%',
                   height: 52,
                   display: 'flex',
                   alignItems: 'center',
                   paddingLeft: 24,
-                  backgroundColor: screen === item.screen ? 'var(--red-glow)' : 'transparent',
-                  borderLeft: screen === item.screen ? '3px solid var(--red-bright)' : '3px solid transparent',
-                  color: screen === item.screen ? 'var(--text)' : 'var(--text-dim)',
+                  textDecoration: 'none',
+                  backgroundColor: isActive ? 'var(--red-glow)' : 'transparent',
+                  borderLeft: isActive ? '3px solid var(--red-bright)' : '3px solid transparent',
+                  color: isActive ? 'var(--text)' : 'var(--text-dim)',
                   fontSize: 15,
-                  fontWeight: screen === item.screen ? '700' : '400',
+                  fontWeight: isActive ? '700' : '400',
                   letterSpacing: '0.01em',
-                }}
+                })}
               >
                 {item.label}
-              </button>
+              </NavLink>
             ))}
           </div>
         </>
@@ -77,34 +81,37 @@ const BottomNav = ({ screen, setScreen }) => {
           borderTop: '1px solid var(--border)',
         }}
       >
-        {mainItems.map(({ screen: s, label, Icon }) => {
-          const active = screen === s;
-          return (
-            <button
-              key={s}
-              onClick={() => navigate(s)}
-              style={{
-                flex: 1,
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'center',
-                alignItems: 'center',
-                gap: 3,
-                borderTop: active ? '2px solid var(--red-bright)' : '2px solid transparent',
-                color: active ? 'var(--red-bright)' : 'var(--text-muted)',
-              }}
-            >
-              <Icon size={18} />
-              <span style={{
-                fontSize: 10,
-                fontWeight: active ? '700' : '400',
-                letterSpacing: '0.03em',
-              }}>
-                {label}
-              </span>
-            </button>
-          );
-        })}
+        {mainItems.map(({ path, label, Icon }) => (
+          <NavLink
+            key={path}
+            to={path}
+            end={path === '/'}
+            style={({ isActive }) => ({
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              alignItems: 'center',
+              gap: 3,
+              textDecoration: 'none',
+              borderTop: isActive ? '2px solid var(--red-bright)' : '2px solid transparent',
+              color: isActive ? 'var(--red-bright)' : 'var(--text-muted)',
+            })}
+          >
+            {({ isActive }) => (
+              <>
+                <Icon size={18} />
+                <span style={{
+                  fontSize: 10,
+                  fontWeight: isActive ? '700' : '400',
+                  letterSpacing: '0.03em',
+                }}>
+                  {label}
+                </span>
+              </>
+            )}
+          </NavLink>
+        ))}
 
         <button
           onClick={() => setShowMore(!showMore)}

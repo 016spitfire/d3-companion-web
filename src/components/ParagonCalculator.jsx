@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   setCurrentParagon,
@@ -116,8 +117,9 @@ const Stat = ({ label, value }) => (
   </div>
 );
 
-const ParagonCalculator = ({ setScreen }) => {
+const ParagonCalculator = () => {
   const dispatch       = useDispatch();
+  const navigate       = useNavigate();
   const reduxState     = useSelector(selectReduxSlice);
   const reduxStateRef  = useRef(reduxState);
   const [calculating, setCalculating] = useState(false);
@@ -171,7 +173,7 @@ const ParagonCalculator = ({ setScreen }) => {
   const planInTracker = () => {
     if (!goalResolution || goalResolution.outOfRange) return;
     dispatch(setGoalFromCalculator(goalResolution.requiredLevel, reduxStateRef.current));
-    if (setScreen) setScreen('paragonTracker');
+    navigate('/tracker');
   };
 
   return (

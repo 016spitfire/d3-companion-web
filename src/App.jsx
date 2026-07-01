@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from 'react'
+import { useEffect, useRef } from 'react'
+import { Routes, Route, useLocation } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { getSavedData, setDims, selectReduxSlice, setCurrentChapter } from './store/store'
 import { journeyChapters } from './data/seasonJourneyData'
@@ -22,25 +23,17 @@ function App() {
   const reduxState = useSelector(selectReduxSlice)
   const reduxStateRef = useRef(reduxState)
   reduxStateRef.current = reduxState
-  const [screen, setScreen] = useState('home')
-  const [windowWidth, setWindowWidth] = useState(window.innerWidth)
 
-  const isMobile = windowWidth < 768
+  const isMobile = reduxState.width < 768
 
   useEffect(() => {
     dispatch(getSavedData())
     dispatch(setDims())
-    const handleResize = () => {
-      setWindowWidth(window.innerWidth)
-      dispatch(setDims())
-    }
+    const handleResize = () => dispatch(setDims())
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
   }, [])
 
-  // Lives here rather than in any one screen so it fires regardless of which
-  // screen the player is actually looking at — chapter advancement shouldn't
-  // depend on having visited Home or the Season Journey screen recently.
   useEffect(() => {
     const chapterTasks = reduxState.journeyProgress.filter((t) => t.chapter === reduxState.currentChapter)
     const allDone = chapterTasks.length > 0 && chapterTasks.every((t) => t.completed)
@@ -49,20 +42,6 @@ function App() {
     if (idx === -1 || idx === journeyChapters.length - 1) return
     dispatch(setCurrentChapter({ val: journeyChapters[idx + 1], currentState: reduxStateRef.current }))
   }, [reduxState.journeyProgress, reduxState.currentChapter])
-
-  const renderScreen = () => {
-    switch (screen) {
-      case 'home':           return <Welcome setScreen={setScreen} />
-      case 'seasonJourney':  return <SeasonJourney />
-      case 'conquests':      return <Conquests />
-      case 'paragonCalc':    return <ParagonCalculator setScreen={setScreen} />
-      case 'paragonTracker': return <ParagonTracker />
-      case 'alterRites':     return <AlterOfRites />
-      case 'haedrigsGift':   return <HaedrigsGift />
-      case 'gearTracker':    return <GearTracker />
-      default:               return <Welcome setScreen={setScreen} />
-    }
-  }
 
   return (
     <div
@@ -77,19 +56,25 @@ function App() {
       <TopBar topBarHeight={TOP_BAR_HEIGHT} />
 
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-        {!isMobile && (
-          <Sidebar screen={screen} setScreen={setScreen} />
-        )}
+        {!isMobile && <Sidebar />}
         <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
-          {renderScreen()}
+          <Routes>
+            <Route path="/"          element={<Welcome />} />
+            <Route path="/journey"   element={<SeasonJourney />} />
+            <Route path="/conquests" element={<Conquests />} />
+            <Route path="/paragon"   element={<ParagonCalculator />} />
+            <Route path="/tracker"   element={<ParagonTracker />} />
+            <Route path="/altar"     element={<AlterOfRites />} />
+            <Route path="/haedrig"   element={<HaedrigsGift />} />
+            <Route path="/gear"      element={<GearTracker />} />
+            <Route path="*"          element={<Welcome />} />
+          </Routes>
         </div>
       </div>
 
       <InstallPrompt />
 
-      {isMobile && (
-        <BottomNav screen={screen} setScreen={setScreen} />
-      )}
+      {isMobile && <BottomNav />}
     </div>
   )
 }
