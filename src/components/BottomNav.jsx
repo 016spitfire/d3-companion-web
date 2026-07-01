@@ -12,7 +12,6 @@ const mainItems = [
 
 const moreItems = [
   { path: '/altar',   label: 'Altar of Rites' },
-  { path: '/gear',    label: 'Gear Tracker' },
   { path: '/haedrig', label: "Haedrig's Gift" },
 ];
 

@@ -1,7 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import {
   FaHome, FaList, FaCalculator, FaChartBar, FaTrophy,
-  FaFire, FaShieldAlt, FaGift,
+  FaFire, FaGift,
 } from 'react-icons/fa';
 
 const items = [
@@ -11,7 +11,6 @@ const items = [
   { path: '/tracker',   label: 'Paragon Tracker',    Icon: FaChartBar },
   { path: '/conquests', label: 'Conquests',          Icon: FaTrophy },
   { path: '/altar',     label: 'Altar of Rites',     Icon: FaFire },
-  { path: '/gear',      label: 'Gear Tracker',       Icon: FaShieldAlt },
   { path: '/haedrig',   label: "Haedrig's Gift",     Icon: FaGift },
 ];
 
